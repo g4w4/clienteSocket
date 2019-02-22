@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title> ADMIN </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+</head>
+<body>
+    <div id="loader" style="
+    display: none;
+    position: absolute;
+    z-index: 10000;
+    width: 100%;
+    color: #070707b3;
+    height: 1000px;
+    background-color: #a3a3a373;">
+        <h1 style="
+            position: absolute;
+            left: 40%;
+            top: 20%;">
+            Cargando
+        </h1>
+    </div>
+    <h1>Portal Agente</h1>
+    <div class="row" style="padding:10px">
+        <div class="col-md-6">
+            <h1> Cuentas </h1>
+            <div class="col-md-12" id="cuentas">
+
+            </div>
+        </div>
+        <div class="col-md-6">
+            <h1 id="nameChat"> Chat </h1>
+            <div id="bodyChat" style="
+                max-height: 500px;
+                overflow: scroll;
+                border-color: #3333;
+                border-width: 4px;"
+            >
+                <span class="btn btn-info"></span>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script>
+
+        let socket  = null;
+        let accounts = null;
+
+        /* Abre los mensajes que se han recibido*/
+        let openChat = (token,chat) => {
+            let html = '';
+            accounts.forEach( item => {
+                if(item.token == token){
+                    for (const _chat in item.chats) {
+                        if(_chat == chat){
+                            let _item = item.chats[`${chat}`]
+                            item.chats[`${chat}`].messages.forEach( message => {
+                                html+=message_glob(message.message,message.date,message.sendBy)
+                            })
+                        }
+                    }
+
+                    if(html != ''){
+                        $('#bodyChat').data('idChat',chat)
+                        $('#bodyChat').html(html)
+                    }
+                }
+            })
+        }
+
+
+        /* Formato del cuadro del mensaje */
+        let message_glob = (message = "",date = "",who = "") => {
+            return `<div class="row">
+                    <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
+                        <span class="btn btn-info"> ${message}</span> <br>
+                        <small>${date}</small>
+                    <div>
+                </div>`
+        }
+
+        $( document ).ready( () => {
+
+            /* Connecion al socket */
+            socket = io('http://localhost:3000?token=QEOdVDDxXIw7talUAAAA');
+
+            socket.on('connect',() => {
+
+                /* conneccion completa */
+                console.log('Connecto')
+            });
+
+            socket.on('oneNewMessage',(data) => {
+
+                /* Recibe el mensaje más actual recibido y actualiza la ventana del chat */
+                if($('#bodyChat').data('idChat') == data.id){
+                    $('#bodyChat').append(message_glob(data.message,data.date,data.sendBy))
+                }
+
+            });
+
+           /* Recibe el listado total de las cuentas y los chats  los actualiza en cuanto llegan*/
+            socket.on('newMessages',(data) => {
+                accounts = data;
+
+                let html = ``
+                data.forEach(item => {
+                    /* coloca el nombre de la cuenta */
+                    html+=`<h1>${item.nombre}</h1>`
+                    for (const chat in item.chats) {
+                        let _item = item.chats[`${chat}`]
+                        /* coloca un boton por chat */
+                        html+=`<p><button class="btn btn-success" onclick="openChat('${item.token}','${chat}')">${chat} ${ (_item.unRead) ? `(${_item.messages.length})` : '' }</button></p>`                        
+                    }
+                });
+
+                $('#cuentas').html(html)
+            });
+            
+            socket.on('disconnect',(data) => {
+                /* Te mando por los chescos por el token */
+                console.log('Conneccion terminada',data)
+            })
+
+            socket.on('reconnect',() => {
+                /* Si muere el serverSocket se seconecta solo */
+                console.log('Conneccion reconnect')
+            })
+        })
+    </script>
+</body>
+</html>
