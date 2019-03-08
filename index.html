@@ -40,7 +40,9 @@
                 border-color: #3333;
                 border-width: 4px;"
             >
-                <span class="btn btn-info"></span>
+            </div>
+            <div id="txtArea">
+              
             </div>
         </div>
     </div>
@@ -51,17 +53,19 @@
 
             let socket  = null;
             let accounts = null;
+            let tokenAgent = "QEOdVDDxXIw7talUAAAA"
     
             /* Abre los mensajes que se han recibido*/
             let openChat = (token,chat) => {
                 let html = '';
+                if(token == undefined) return $('#bodyChat').html(html);
                 accounts.forEach( item => {
                     if(item.token == token){
                         for (const _chat in item.chats) {
                             if(_chat == chat){
                                 let _item = item.chats[`${chat}`]
                                 item.chats[`${chat}`].messages.forEach( message => {
-                                    if(!message.type){
+                                    if(!message.type || message.type == 'chat'){
                                         html+=message_glob(message.message,message.date,message.sendBy)
                                     }else{
                                         console.log(message)
@@ -83,6 +87,21 @@
                                         }
                                     }
                                 })
+                                
+    /* VALIDA SI AUN NO SE ASIGNA A ALGUN AGENTE */
+
+                                if(_item.agentIn == tokenAgent){
+                                    $('#txtArea').html(`<p><input id="mensajeInput" /> </p>
+                                        <p><button class="btn btn-success" 
+                                        onclick="sendMessage('${item.token}','${chat}')">Enviar mensaje</button>  </p>
+                                        <p><button class="btn btn-danger" 
+                                        onclick="freeChat('${item.token}','${chat}')">Liberar Chat</button></p>`)
+                                }else if(_item.agentIn == null){
+                                    $('#txtArea').html(`<button class="btn btn-success" 
+                                        onclick="applyChat('${item.idSocket}','${chat}')">Contestar Chat</button>`)
+                                }else{
+                                    $('#txtArea').html(`<p>Chat ya asignado</p>`)
+                                }
                             }
                         }
     
@@ -90,7 +109,41 @@
                             $('#bodyChat').data('idChat',chat)
                             $('#bodyChat').html(html)
                         }
+
+                        
                     }
+                })
+            }
+
+
+            /* Solicita el chat al sistema */
+            let applyChat = (socketId,chat) => {
+                socket.emit('applyChat',{socketId,chat,tokenAgent})
+            }
+
+            /* Se libera el chat del agente*/
+            let freeChat = (socketId,chat) => {
+                socket.emit('freeChat',{socketId,chat})
+                accounts.forEach( account => {
+                    if(account.token == socketId){
+                        account.chats[chat].agentIn = null;
+                        $('#txtArea').html('')
+                        $('#bodyChat').html('')
+                    }
+                })
+            }   
+
+
+            /* Envio de texto plano */
+            let sendMessage = (socketId,chat) => {
+                let msj = $('#mensajeInput').val()
+                accounts.forEach( account => {
+                    console.log(account.token,socketId,account.token == socketId)
+                    if(account.token == socketId){
+                        socket.emit('sendMessageText',{socketId: account.idSocket,msj:msj,chat:chat})
+                        $('#bodyChat').append(message_glob(msj,'ahora','me'))
+                    }
+                    
                 })
             }
     
@@ -98,7 +151,7 @@
             /* Formato del cuadro del mensaje */
             let message_glob = (message = "",date = "",who = "") => {
                 return `<div class="row">
-                        <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
                             <span class="btn btn-info"> ${message}</span> <br>
                             <small>${date}</small>
                         <div>
@@ -107,7 +160,7 @@
     
             let message_img = (message = "",date = "",who = "", caption = "") => {
                 return `<div class="row">
-                        <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
                             <img src="http://127.0.0.1:3000/file?id=${message}" style="max-width: 100% !important; width: 100%" />
                             ${ caption.trim() != '' ? `<span class="btn btn-info"> ${caption}</span> <br>` : ''}
                             <small>${date}</small>
@@ -117,7 +170,7 @@
     
             let message_video = (message = "",date = "",who = "", caption = "") => {
                 return `<div class="row">
-                        <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
                                 <video style="max-width: 100% !important; width: 100%" controls>
                                     <source src="http://127.0.0.1:3000/file?id=${message}" type="video/mp4">
                                     <source src="http://127.0.0.1:3000/file?id=${message}" type="video/ogg">
@@ -131,7 +184,7 @@
     
             let message_file = (message = "",date = "",who = "", caption = "") => {
                 return `<div class="row">
-                        <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
                             ${ caption.trim() != '' ? `<span class="btn btn-info"> ${caption}</span> <br>` : ''}
                             <a href="http://127.0.0.1:3000/file?id=${message}" target="_blank">File</a>
                             <small>${date}</small>
@@ -141,7 +194,7 @@
     
             let message_ogg = (message = "",date = "",who = "", caption = "") => {
                 return `<div class="row">
-                        <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
                                     <audio controls>
                                     <source src="http://127.0.0.1:3000/file?id=${message}" type="audio/ogg">
                                     <source src="http://127.0.0.1:3000/file?id=${message}" type="audio/mpeg">
@@ -157,12 +210,36 @@
             $( document ).ready( () => {
     
                 /* Connecion al socket */
-                socket = io('http://127.0.0.1:3000?token=QEOdVDDxXIw7talUAAAA');
+                socket = io('http://127.0.0.1:3000?token='+tokenAgent);
     
                 socket.on('connect',() => {
     
                     /* conneccion completa */
                     console.log('Connecto')
+
+
+                    /* Manda la respuesta de la peticion del chat*/
+                    socket.on('giveChat',(data) => {
+                        accounts.forEach( account => {
+                            if(account.token == data[1]){
+                                account.chats[data[0]].agentIn = tokenAgent;
+                            }
+                        })
+                        
+                        if(data != 500){
+                            $('#txtArea').html(`<p><input id="mensajeInput" /> </p>
+                                        <p><button class="btn btn-success" 
+                                        onclick="sendMessage('${data[1]}','${data[0]}')">Enviar mensaje</button>  </p>
+                                        <p><button class="btn btn-danger" 
+                                        onclick="freeChat('${data[1]}','${data[0]}')">Liberar Chat</button></p>`)
+                        }else{
+                            alert('Chat ya asignado')
+                            $('#txtArea').html('')
+                            $('#bodyChat').html('')
+                        }
+                    })
+
+
                 });
     
     /* Se actualizo para soportar la recepción de archivos*/
@@ -195,6 +272,7 @@
     
                /* Recibe el listado total de las cuentas y los chats  los actualiza en cuanto llegan*/
                 socket.on('newMessages',(data) => {
+                    console.log('LLEGO ALGO')
                     accounts = data;
     
                     let html = ``
@@ -215,6 +293,8 @@
                     /* Te mando por los chescos por el token */
                     console.log('Conneccion terminada',data)
                 })
+
+                
     
                 socket.on('reconnect',() => {
                     /* Si muere el serverSocket se seconecta solo */
