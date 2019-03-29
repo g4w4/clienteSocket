@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title> Supervisor </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+</head>
+<body>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12 text-center" style="padding-top:15px">
+                <h1>Portal agente</h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="row">
+                    <div class="col-lg-12 text-center">
+                        <h2>Mensajes</h2>
+                    </div>
+                </div>
+                <!-- ChatBox -->
+                    <div class="row" style="padding-top: 30px;border-color: #333;border-width: 4px;border-style: dotted;height: 600px;max-height: 600px;overflow: scroll;">
+                        <div class="col-lg-12" id="chatBox">
+                                
+                        </div>
+                    </div>
+                <!-- / -->
+                </div>
+            <div class="col-lg-2"></div>
+            <div class="col-lg-6">
+                <div class="row">
+                    <div class="col-lg-6" id="connectionStatus">
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script>
+
+        const chatItem = () => {
+            return `
+                <div class="card" style="width: 18rem;">
+                    <div class="card-footer">
+                        <p class="card-subtitle text-muted">Coca-cola</p>
+                    </div>
+                    <div class="card-body">
+                        <span class="badge-success" style="padding: 5px 7.5px;border-radius: 26px;font-size: 10px;position: absolute;right: 10%;">7</span>
+                        <h5 class="card-title">Numero</h5>
+                        <p class="card-subtitle text-muted">Abstrack text</p>
+                        <small class="card-text text-rigth">2018-12-12 12:12</small>
+                        <span class="badge-success">My Free or Block</span>
+                    </div>
+                </div>`
+        }
+
+        const off = () => {
+            $('#connectionStatus').html('<span class="badge badge-danger" id="status_connection"> offline</span>')
+        }
+
+        const on = () => {
+            $('#connectionStatus').html('<span class="badge badge-success" id="status_connection"> online </span>')
+        }
+
+        /* Global variables */
+        let socket  = null;
+        const IP = 'http://localhost:3000'
+        const TOKEN = 'Aj11caUk9SqM6qhvimxWpxS7' // token_socket of user
+
+        $( document ).ready( () => {
+
+            off()
+
+            /* Connection to server socket */
+            socket = io(`${IP}?token=${TOKEN}`);
+
+            /* Confirm if the connection is successfully */
+            socket.on('connect',() => {
+                on()
+                console.log('Connecto')
+            } );
+
+            /* Alert to disconnection*/
+            socket.on('disconnect',(data) => {
+                alert('The connection not is possible, communicate with operator.')
+                off()
+            })
+
+            /* Recconection */ 
+            socket.on('reconnect',() => on() )
+
+            /*************************************
+            *  Receive initial info after login  *
+            *  Last Update : 26-03-19 gama       *
+            *************************************/
+            socket.on('welcomeSupervisor',(accounts) => {
+                console.log('welcomeSupervisor',accounts) 
+            })
+
+            /************************************
+            *  Receive new account after login  *
+            *  Last Update : 26-03-19 gama      *
+            ************************************/
+            socket.on('loginAccount', account =>{
+                console.log('loginAccount',account)
+            })
+
+            /********************************
+            *  Receive change in  account   *
+            *  Last Update : 26-03-19 gama  *
+            ********************************/
+            socket.on('changeAccount', account =>{
+                console.log('changeAccount',account)
+            })
+
+            /********************************
+            *  Receive alert to connection  *
+            *  in account.                  *
+            *  Last Update : 26-03-19 gama  *
+            ********************************/
+            socket.on('accountDown',(account) => {
+                console.log('accountDown',account)
+            })
+
+        })
+    </script>
+</body>
+</html>

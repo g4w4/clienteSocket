@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title> Agente </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+</head>
+<body>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12 text-center" style="padding-top:15px">
+                <h1>Portal agente</h1>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="row">
+                    <div class="col-lg-12 text-center">
+                        <h2>Mensajes</h2>
+                    </div>
+                </div>
+                <!-- ChatBox -->
+                    <div class="row" style="padding-top: 30px;border-color: #333;border-width: 4px;border-style: dotted;height: 600px;max-height: 600px;overflow: scroll;">
+                        <div class="col-lg-12" id="chatBox">
+                                
+                        </div>
+                    </div>
+                <!-- / -->
+                </div>
+            <div class="col-lg-2"></div>
+            <div class="col-lg-6">
+                
+                <!-- Status -->
+                <div class="row">
+                    <div class="col-lg-6" id="connectionStatus">
+                        
+                    </div>
+                </div>
+                <!-- / -->
+
+                <!-- Chat -->
+                <div class="row">
+                    <div class="row">
+                        <div class="col-lg-10 text-center" >
+                                <h2 id="chat_title">ChatID</h2>
+                        </div>
+                        <div class="col-lg-2">
+                                <button class="btn-success" onclick="closeTT()">Cerrar TT</button>
+                        </div>
+                    </div>
+                    <div class="col-lg-12" id="chat_body" style="padding-top: 30px;border-color: #333;border-width: 4px;border-style: dotted;height: 450px;max-height: 450px;overflow: scroll;">
+
+                    </div>
+                    <div class="col-lg-12">
+                        <div class="row">
+                            <div class="col-lg-8">
+                                    <textarea id="sendText" cols="30" rows="3"></textarea>
+                            </div>
+                            <div class="col-lg-4">
+                                <button class="btn-success" onclick="sendText()">Enviar</button>
+                                <button class="btn-info" data-toggle="modal" data-target="#sendFile">Enviar archivo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- / -->
+
+                <!-- Modal for restarting account -->
+                <div class="modal" tabindex="-1" role="dialog" id="sendFile">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Enviar Archivo</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                
+                                <!-- Upload File -->
+                                <form action="" id="uploadFile">
+                                    <div class="row">
+                                        <div class="col-lg-12">
+                                                <input type="file" name="file" id="fileUpload">
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-lg-12">
+                                            <button class="btn-success" type="submit">Subir</button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <!-- / -->
+
+                                <!-- PROGRES BAR -->
+                                <div class="row" style="display:none" id="progressUpload">
+                                    <div class="col-lg-12">
+                                        <div class="progress" >
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- / -->
+
+                                <!-- Preview -->
+                                <div class="row">
+                                    <div class="col-lg-12" id="preview" style="display:none">
+                                        
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- / -->
+
+                <!-- PROGRESS CLOSE TT-->
+                <div class="modal" tabindex="-1" role="dialog" id="closeTicket" data-backdrop="static" data-keyboard="false">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Cerrando TT</h5>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-lg-12">
+                                        <div class="progress" >
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- / -->
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script>
+
+        /********************************
+        *  Update status of connection  *
+        *  Last Update : 26-03-19 gama  *
+        ********************************/
+        const off = () => {
+            $('#connectionStatus').html('<span class="badge badge-danger" id="status_connection"> offline</span>')
+        }
+
+        /********************************
+        *  Update status of connection  *
+        *  Last Update : 27-03-19 gama  *
+        ********************************/
+        const on = () => {
+            $('#connectionStatus').html('<span class="badge badge-success" id="status_connection"> online </span>')
+        }
+
+        /*******************************************
+        *  Return one item chat with info general  *
+        *  Last Update : 27-03-19 gama             *
+        *******************************************/
+        const chatItem = (account,chat) => {
+            if(chat.id){
+                 /* Increment the number in messages unread */
+                let messagesUnRead = 0;
+                if(chat.unRead){
+                    for( let i = (chat.messages.length - 1); i > 0; i--){
+                        if(chat.messages[i].sendBy == 'Agent'){
+                            break;
+                        }else{
+                            messagesUnRead = messagesUnRead + 1;
+                        }
+                    }
+                }
+
+                return `
+                    <div class="card" style="width: 18rem;" id="${account.socketId}_${chat.id.replace('@','')}" account="${account.token}" chatId="${chat.id}">
+                        <div class="card-footer">
+                            <p class="card-subtitle text-muted">${account.nombre}</p>
+                        </div>
+                        <div class="card-body">
+                            ${
+                                (chat.unRead) ? `
+                                    <span class="badge-success" style="padding: 5px 7.5px;border-radius: 26px;font-size: 10px;position: absolute;right: 10%;">
+                                        ${messagesUnRead}
+                                    </span>` : ''
+                            }
+                            <h5 class="card-title">${chat.id}</h5>
+                            <p class="card-subtitle text-muted">${chat.lastMessage.substring(0,40)} ...</p>
+                            <small class="card-text text-rigth">${chat.messages[chat.messages.length - 1].date}</small>
+                            ${
+                                (chat.agent.token == TOKEN) ? '<span class="badge-info">Assignado</span>' : 
+                                    (chat.agent.token) ? '<span class="badge-danger">Bloqueado</span>' 
+                                        : '<span class="badge-success">Abierto</span>'
+                            }
+                        </div>
+                    </div>`
+            }
+           
+        }
+
+        /*******************************************
+        *  Return one item message of normal text  *
+        *  Last Update : 27-03-19 gama             *
+        *******************************************/
+         let message_glob = (message = "",date = "",who = "",akc = 0) => {
+            return `<div class="row itemMessage">
+                    <div class="col-lg-12 text-${ (who == 'Client') ? 'left' : 'right' }">
+                        <span class="btn btn-info" style="margin-bottom: 5px;"> ${message}  <br>
+                            <small  style="font-size: 9px;">${date}</small> 
+                            <small style="font-size: 9px;">${akc ? '√√' : '√'}</small>
+                        </span>
+                    <div>
+                </div>`
+        }
+
+        /**********************************************
+        *  Check if have a new messages in chat open  *
+        *  Last Update : 27-03-19 gama                *
+        **********************************************/
+        const updateChat = () => {
+            let chat_id = $('#chat_body').attr('idChat')
+            if(chat_id){
+                let chat = chat_id.split('__')[1]
+                let account = chat_id.split('__')[0]
+                let totalMessages = document.getElementsByClassName('itemMessage').length;
+                if(agent.accounts[account].chats[chat]){
+                    if(totalMessages < agent.accounts[account].chats[chat].messages.length){
+                        for( let i = totalMessages; i < agent.accounts[account].chats[chat].messages.length; i++){
+                            let _message = agent.accounts[account].chats[chat].messages[i]
+                            let message = message_glob(_message.message,_message.date,_message.sendBy,_message.akc)
+                            $('#chat_body').append(message)
+                        }
+                    }
+                }
+            }
+        }
+
+        /********************************
+        *  Update the table of chats    *
+        *  Last Update : 27-03-19 gama  *
+        ********************************/
+        const change = () => {
+            let html = ''
+            for(account in agent.accounts){
+                if(agent.accounts[account].chats)
+                for(chat in agent.accounts[account].chats){
+                    html+=chatItem(agent.accounts[account],agent.accounts[account].chats[chat])
+                }
+            }
+            $('#chatBox').html(html)
+            
+            /* Add event onclick */
+            for(account in agent.accounts){
+                if(agent.accounts[account].chats)
+                for(chat in agent.accounts[account].chats){
+                    let _chat = agent.accounts[account].chats[chat];
+                    let _account = agent.accounts[account];
+
+                    /* Valid if chat not is blocked */
+                    if(!agent.accounts[account].chats[chat].agent.token || agent.accounts[account].chats[chat].agent.token == TOKEN){
+                        /* Add event to open chat */
+                        document.getElementById(`${_account.socketId}_${_chat.id.replace('@','')}`).onclick = (e) => {
+                            for(let i = 0; i < e.path.length; i++){
+                                if($(e.path[i]).hasClass('card')){
+                                    let _account = e.path[i].getAttribute('account')
+                                    let _chat = e.path[i].getAttribute('chatId')
+                                    let messages = agent.accounts[_account].chats[_chat].messages;
+                                    $('#chat_title').html(_chat)
+                                    let html = ''
+                                    for(let i = 0; i < messages.length;i++){
+                                        html+=message_glob(messages[i].message,messages[i].date,messages[i].sendBy,messages[i].akc)
+                                    }
+                                    $('#chat_body').html(html)
+                                    $('#chat_body').attr('idChat',`${_account}__${_chat}`)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            updateChat()
+        }
+
+        /***********************************
+        *  Send text message in chat open  *
+        *  Last Update : 27-03-19 gama     *
+        ***********************************/
+        const sendText = () => {
+            let chat_id = $('#chat_body').attr('idChat')
+            if(chat_id){
+                /* Valid if chat is free or is assignment by me */
+                let chat = chat_id.split('__')[1]
+                let account = chat_id.split('__')[0]
+                if(agent.accounts[account].chats[chat].agent.token == TOKEN || !agent.accounts[account].chats[chat].agent.token){
+                    let message = $('#sendText').val()
+                    socket.emit('sendText',{chat,account,message})
+                    $('#sendText').val("")
+                }
+                
+            }
+        }
+
+        /***********************************
+        *  Send file message in chat open  *
+        *  Last Update : 28-03-19 gama     *
+        ***********************************/
+        const sendFile = (type,name) => {
+            let chat_id = $('#chat_body').attr('idChat')
+            if(chat_id){
+                /* Valid if chat is free or is assignment by me */
+                let chat = chat_id.split('__')[1]
+                let account = chat_id.split('__')[0]
+                if(agent.accounts[account].chats[chat].agent.token == TOKEN || !agent.accounts[account].chats[chat].agent.token){
+                    let message = $('#caption').val()
+                    socket.emit('sendFile',{chat,account,message,type,name})
+                    $('#progressUpload').attr('style','display:block')
+                    $('#progressUpload').children().children().children().attr('style','width:100%')
+                    $('#preview').html("")
+                }
+                
+            }
+        }
+
+        /*****************************************
+        *  Close tt in the system and save chat  *
+        *  Last Update : 28-03-19 gama           *
+        *****************************************/
+        const closeTT = () => {
+            let chat_id = $('#chat_body').attr('idChat')
+            if(chat_id){
+                let chat = chat_id.split('__')[1]
+                let account = chat_id.split('__')[0]
+                if(agent.accounts[account].chats[chat].agent.token == TOKEN || !agent.accounts[account].chats[chat].agent.token){
+                    let category = prompt('Cual es la categoría');
+                    let status = prompt('Estatus (abando,cerrado)')
+                    let nota = prompt('Alguna nota o descripción ?')
+                    try {
+                        if(category.trim() != '' && status.trim() != '' && nota.trim() != ''){
+                            $('#closeTicket').modal('show')
+                            socket.emit('closeTT',{category,status,nota,chat,account})
+                        }else{
+                            alert('Complete los datos correctamente')
+                        }
+                    } catch (error) {
+                        alert('Complete los datos correctamente')
+                    }
+                }else{
+                    alert('No tienes acceso a este chat')
+                }
+                
+            }else{
+                alert('No tienes acceso a este chat')
+            }
+        }
+
+
+        /* Global variables */
+        let socket  = null;
+        const IP = 'http://localhost:3000'
+        const TOKEN = 'swccTTKXakAMWxLRxnAiz1q4' // token_socket of user
+        let agent = {}
+
+        $( document ).ready( () => {
+
+            off()
+
+            /* Connection to server socket */
+            socket = io(`${IP}?token=${TOKEN}`);
+
+            /* Confirm if the connection is successfully */
+            socket.on('connect',() => on() );
+
+            /* Alert to disconnection*/
+            socket.on('disconnect',(data) => {
+                alert('The connection not is possible, communicate with operator.')
+                off()
+            })
+
+            /* Recconection */ 
+            socket.on('reconnect',() => on() )
+
+            /* Initial info */
+            socket.on('accountsInfo',(accounts) => console.log(accounts) )
+
+            /************************************
+            *  Receive new account after login  *
+            *  Last Update : 26-03-19 gama      *
+            ************************************/
+            socket.on('loginAccount', account =>{
+                console.log('loginAccount',account)
+            })
+
+            /************************************
+            *  Receive all info after login     *
+            *  Last Update : 26-03-19 gama      *
+            ************************************/
+            socket.on('welcomeAgent', account =>{
+                agent = { ...agent,...account}
+                change()
+                console.log('welcomeAgent',agent)
+            })
+
+            /********************************
+            *  Receive alert to connection  *
+            *  in account.                  *
+            *  Last Update : 26-03-19 gama  *
+            ********************************/
+            socket.on('accountDown',(account) => {
+                agent.accounts[account.token] = {
+                    ...agent.accounts[account.token],
+                    ...account
+                }
+                change()
+                console.log('accountDown',agent.accounts[account.token])
+            })
+
+            /********************************
+            *  Receive change in  account   *
+            *  Last Update : 26-03-19 gama  *
+            ********************************/
+            socket.on('changeAccount', account =>{
+                agent.accounts[account.token] = {
+                    ...agent.accounts[account.token],
+                    ...account
+                }
+                change()
+                console.log('changeAccount',agent.accounts[account.token],account)
+            })
+
+            /********************************
+            *  Receive chat what is free    *
+            *  or is assignment for my      *
+            *  Last Update : 26-03-19 gama  *
+            ********************************/
+            socket.on('changeInChat', (info) => {
+                if(agent.accounts[info.account]){
+                    agent.accounts[info.account].chats[info.chat.id] = info.chat
+                    change()
+                }
+                console.log('changeInChat',chat)
+            })
+
+            /**************************************
+            *  Receive if have error in sendText  *
+            *  Last Update : 28-03-19 gama        *
+            **************************************/
+            socket.on('errorSendText',(error) => {
+                console.error(error)
+                    alert('Se perdio la conección porfavor refresca el navegador')
+            })
+
+            /***************************************
+            *  Upload and valid the file for send  *
+            *  Last Update : 28-03-19 gama         *
+            ****************************************/
+            document.getElementById('uploadFile').addEventListener('submit', e => {
+                e.preventDefault()
+                if(document.getElementById('fileUpload').value != ''){
+                    $('#progressUpload').attr('style','display:block')
+                    $('#uploadFile').attr('style','display:none')
+                    /* Uplad File */
+                    console.log(document.getElementById('fileUpload').files)
+                    const form = new FormData()
+
+                    form.append('file', document.getElementById('fileUpload').files[0],document.getElementById('fileUpload').files[0].name )
+                    form.append('token',TOKEN)
+
+                    $.ajax({
+                        url: IP+"/uploadMedia",
+                        method: 'post',
+                        data: form,
+                        "async": true,
+                        "crossDomain": true,
+                        processData: false,
+                        contentType: false,
+                        xhr: function () {
+                            var xhr = new XMLHttpRequest();
+                            /* Add progress event listener to the upload.*/
+                            xhr.upload.addEventListener('progress', function (event) {
+                                var progressBar = $('#progressUpload').children().children().children();
+
+                                if (event.lengthComputable) {
+                                    var percent = (event.loaded / event.total) * 100;
+                                    progressBar.width(percent + '%');
+
+                                    if (percent === 100) {
+                                        $('#progressUpload').attr('style','display:none')
+                                    }
+                                }
+                            });
+                            return xhr;
+                        }
+                    }).done( (data) => {
+                        let result = data
+                        $('#preview').attr('style','display:block')
+                        let html = '';
+                        html+= (result.type == 'image') ?
+                            `<img src="${IP}/file?id=${result.name}" width="100%"><input type="text" name="" id="caption"  placeholder="mensaje">` : 
+                            (result.type == 'video') ? 
+                                `<video src="${IP}/file?id=${result.name}" width="100%" controls>
+
+                                </video><input type="text" name="" id="caption" placeholder="mensaje">`:`<a href="${IP}/file?id=${result.name}" target="_blank" rel="noopener noreferrer">Descargar</a>`
+
+                        html+= `<button class="btn-success" onclick="sendFile('${result.type}','${result.name}')"> Enviar</button>`
+
+                        $('#preview').html(html)
+                    }).fail(function (xhr, status) {
+                        document.getElementById('fileUpload').value = ""
+                        $('#uploadFile').attr('style','display:block')
+                        alert("Archivo no soportado")
+                    });
+
+                }
+            })
+          
+            /**************************************
+            *  Receive if have error in sendFile  *
+            *  Last Update : 28-03-19 gama        *
+            **************************************/
+            socket.on('errorSendFile',(error) => {
+                console.error(error)
+                $('#uploadFile').attr('style','display:block')
+                $('#progressUpload').attr('style','display:none')
+                $('#sendFile').modal('hide')
+                alert('Se perdio la conección porfavor refresca el navegador')
+            })
+
+            /****************************************
+            *  Receive if sendFile is successfully  *
+            *  Last Update : 28-03-19 gama          *
+            ****************************************/
+            socket.on('sendFileSuccess',(error) => {
+                console.log('jakka')
+                $('#uploadFile').attr('style','display:block')
+                $('#progressUpload').attr('style','display:none')
+                $('#sendFile').modal('hide')
+            })
+
+            /**********************************
+            *  Wait confirmation of close TT  *
+            *  Last Update : 28-03-19 gama    *
+            **********************************/
+            socket.on('closeSuccess',(info) => {
+                console.log('closeSuccess',info)
+                /* Delete chat */
+                let _newChats = {}
+                for(chat in agent.accounts[info.token].chats){
+                    if(chat != info.chat){
+                        _newChats[chat] = agent.accounts[info.token].chats[chat]
+                    }
+                }
+                agent.accounts[info.token].chats = _newChats;
+
+                /* close modal */
+                $('#closeTicket').modal('hide')
+                $('#chat_title').html('CHAT ID')
+                $('#chat_body').attr('idChat','')
+                $('#chat_body').html('')
+            })
+
+           /*********************************
+            *  Wait error in the close TT   *
+            *  Last Update : 28-03-19 gama  *
+            *********************************/
+            socket.on('closeError',(error) => {
+                console.log(error)
+               alert('Ticket no cerrado '+error)
+               $('#closeTicket').modal('hide')
+            })  
+
+        })
+    </script>
+</body>
+</html>
