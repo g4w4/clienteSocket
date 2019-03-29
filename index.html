@@ -40,7 +40,9 @@
                 border-color: #3333;
                 border-width: 4px;"
             >
-                <span class="btn btn-info"></span>
+            </div>
+            <div id="txtArea">
+              
             </div>
         </div>
     </div>
@@ -49,90 +51,256 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script>
 
-        let socket  = null;
-        let accounts = null;
+            let socket  = null;
+            let accounts = null;
+            let tokenAgent = "QEOdVDDxXIw7talUAAAA"
+    
+            /* Abre los mensajes que se han recibido*/
+            let openChat = (token,chat) => {
+                let html = '';
+                if(token == undefined) return $('#bodyChat').html(html);
+                accounts.forEach( item => {
+                    if(item.token == token){
+                        for (const _chat in item.chats) {
+                            if(_chat == chat){
+                                let _item = item.chats[`${chat}`]
+                                item.chats[`${chat}`].messages.forEach( message => {
+                                    if(!message.type || message.type == 'chat'){
+                                        html+=message_glob(message.message,message.date,message.sendBy)
+                                    }else{
+                                        console.log(message)
+                                        switch(message.type){
+                                            case 'img':
+                                                html+=message_img(message.message,message.date,message.sendBy,message.caption)
+                                            break
+                                            case 'video':
+                                                html+=message_video(message.message,message.date,message.sendBy,message.caption)
+                                            break
+                                            case 'file':
+                                                html+=message_file(message.message,message.date,message.sendBy,message.caption)
+                                            break;
+                                            case 'ogg':
+                                                html+=message_ogg(message.message,message.date,message.sendBy,message.caption)
+                                            break
+                                            default:
+                                            console.log(message)
+                                        }
+                                    }
+                                })
+                                
+    /* VALIDA SI AUN NO SE ASIGNA A ALGUN AGENTE */
 
-        /* Abre los mensajes que se han recibido*/
-        let openChat = (token,chat) => {
-            let html = '';
-            accounts.forEach( item => {
-                if(item.token == token){
-                    for (const _chat in item.chats) {
-                        if(_chat == chat){
-                            let _item = item.chats[`${chat}`]
-                            item.chats[`${chat}`].messages.forEach( message => {
-                                html+=message_glob(message.message,message.date,message.sendBy)
-                            })
+                                if(_item.agentIn == tokenAgent){
+                                    $('#txtArea').html(`<p><input id="mensajeInput" /> </p>
+                                        <p><button class="btn btn-success" 
+                                        onclick="sendMessage('${item.token}','${chat}')">Enviar mensaje</button>  </p>
+                                        <p><button class="btn btn-danger" 
+                                        onclick="freeChat('${item.token}','${chat}')">Liberar Chat</button></p>`)
+                                }else if(_item.agentIn == null){
+                                    $('#txtArea').html(`<button class="btn btn-success" 
+                                        onclick="applyChat('${item.idSocket}','${chat}')">Contestar Chat</button>`)
+                                }else{
+                                    $('#txtArea').html(`<p>Chat ya asignado</p>`)
+                                }
+                            }
                         }
+    
+                        if(html != ''){
+                            $('#bodyChat').data('idChat',chat)
+                            $('#bodyChat').html(html)
+                        }
+
+                        
                     }
+                })
+            }
 
-                    if(html != ''){
-                        $('#bodyChat').data('idChat',chat)
-                        $('#bodyChat').html(html)
+
+            /* Solicita el chat al sistema */
+            let applyChat = (socketId,chat) => {
+                socket.emit('applyChat',{socketId,chat,tokenAgent})
+            }
+
+            /* Se libera el chat del agente*/
+            let freeChat = (socketId,chat) => {
+                socket.emit('freeChat',{socketId,chat})
+                accounts.forEach( account => {
+                    if(account.token == socketId){
+                        account.chats[chat].agentIn = null;
+                        $('#txtArea').html('')
+                        $('#bodyChat').html('')
                     }
-                }
-            })
-        }
+                })
+            }   
 
 
-        /* Formato del cuadro del mensaje */
-        let message_glob = (message = "",date = "",who = "") => {
-            return `<div class="row">
-                    <div class="col-lg-12 text-${ (who == 'client') ? 'right' : 'left' }">
-                        <span class="btn btn-info"> ${message}</span> <br>
-                        <small>${date}</small>
-                    <div>
-                </div>`
-        }
-
-        $( document ).ready( () => {
-
-            /* Connecion al socket */
-            socket = io('http://localhost:3000?token=QEOdVDDxXIw7talUAAAA');
-
-            socket.on('connect',() => {
-
-                /* conneccion completa */
-                console.log('Connecto')
-            });
-
-            socket.on('oneNewMessage',(data) => {
-
-                /* Recibe el mensaje más actual recibido y actualiza la ventana del chat */
-                if($('#bodyChat').data('idChat') == data.id){
-                    $('#bodyChat').append(message_glob(data.message,data.date,data.sendBy))
-                }
-
-            });
-
-           /* Recibe el listado total de las cuentas y los chats  los actualiza en cuanto llegan*/
-            socket.on('newMessages',(data) => {
-                accounts = data;
-
-                let html = ``
-                data.forEach(item => {
-                    /* coloca el nombre de la cuenta */
-                    html+=`<h1>${item.nombre}</h1>`
-                    for (const chat in item.chats) {
-                        let _item = item.chats[`${chat}`]
-                        /* coloca un boton por chat */
-                        html+=`<p><button class="btn btn-success" onclick="openChat('${item.token}','${chat}')">${chat} ${ (_item.unRead) ? `(${_item.messages.length})` : '' }</button></p>`                        
+            /* Envio de texto plano */
+            let sendMessage = (socketId,chat) => {
+                let msj = $('#mensajeInput').val()
+                accounts.forEach( account => {
+                    console.log(account.token,socketId,account.token == socketId)
+                    if(account.token == socketId){
+                        socket.emit('sendMessageText',{socketId: account.idSocket,msj:msj,chat:chat})
+                        $('#bodyChat').append(message_glob(msj,'ahora','me'))
                     }
-                });
-
-                $('#cuentas').html(html)
-            });
+                    
+                })
+            }
+    
+    
+            /* Formato del cuadro del mensaje */
+            let message_glob = (message = "",date = "",who = "") => {
+                return `<div class="row">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
+                            <span class="btn btn-info"> ${message}</span> <br>
+                            <small>${date}</small>
+                        <div>
+                    </div>`
+            }
+    
+            let message_img = (message = "",date = "",who = "", caption = "") => {
+                return `<div class="row">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
+                            <img src="http://127.0.0.1:3000/file?id=${message}" style="max-width: 100% !important; width: 100%" />
+                            ${ caption.trim() != '' ? `<span class="btn btn-info"> ${caption}</span> <br>` : ''}
+                            <small>${date}</small>
+                        <div>
+                    </div>`
+            }
+    
+            let message_video = (message = "",date = "",who = "", caption = "") => {
+                return `<div class="row">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
+                                <video style="max-width: 100% !important; width: 100%" controls>
+                                    <source src="http://127.0.0.1:3000/file?id=${message}" type="video/mp4">
+                                    <source src="http://127.0.0.1:3000/file?id=${message}" type="video/ogg">
+                                    Your browser does not support HTML5 video.
+                                </video>
+                                ${ caption.trim() != '' ? `<span class="btn btn-info"> ${caption}</span> <br>` : ''}
+                            <small>${date}</small>
+                        <div>
+                    </div>`
+            }
+    
+            let message_file = (message = "",date = "",who = "", caption = "") => {
+                return `<div class="row">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
+                            ${ caption.trim() != '' ? `<span class="btn btn-info"> ${caption}</span> <br>` : ''}
+                            <a href="http://127.0.0.1:3000/file?id=${message}" target="_blank">File</a>
+                            <small>${date}</small>
+                        <div>
+                    </div>`
+            }
+    
+            let message_ogg = (message = "",date = "",who = "", caption = "") => {
+                return `<div class="row">
+                        <div class="col-lg-12 text-${ (who != 'client') ? 'right' : 'left' }">
+                                    <audio controls>
+                                    <source src="http://127.0.0.1:3000/file?id=${message}" type="audio/ogg">
+                                    <source src="http://127.0.0.1:3000/file?id=${message}" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                ${ caption.trim() != '' ? `<span class="btn btn-info"> ${caption}</span> <br>` : ''}
+                            <small>${date}</small>
+                        <div>
+                    </div>`
+            }
             
-            socket.on('disconnect',(data) => {
-                /* Te mando por los chescos por el token */
-                console.log('Conneccion terminada',data)
-            })
+            
+            $( document ).ready( () => {
+    
+                /* Connecion al socket */
+                socket = io('http://127.0.0.1:3000?token='+tokenAgent);
+    
+                socket.on('connect',() => {
+    
+                    /* conneccion completa */
+                    console.log('Connecto')
 
-            socket.on('reconnect',() => {
-                /* Si muere el serverSocket se seconecta solo */
-                console.log('Conneccion reconnect')
+
+                    /* Manda la respuesta de la peticion del chat*/
+                    socket.on('giveChat',(data) => {
+                        accounts.forEach( account => {
+                            if(account.token == data[1]){
+                                account.chats[data[0]].agentIn = tokenAgent;
+                            }
+                        })
+                        
+                        if(data != 500){
+                            $('#txtArea').html(`<p><input id="mensajeInput" /> </p>
+                                        <p><button class="btn btn-success" 
+                                        onclick="sendMessage('${data[1]}','${data[0]}')">Enviar mensaje</button>  </p>
+                                        <p><button class="btn btn-danger" 
+                                        onclick="freeChat('${data[1]}','${data[0]}')">Liberar Chat</button></p>`)
+                        }else{
+                            alert('Chat ya asignado')
+                            $('#txtArea').html('')
+                            $('#bodyChat').html('')
+                        }
+                    })
+
+
+                });
+    
+    /* Se actualizo para soportar la recepción de archivos*/
+                socket.on('oneNewMessage',(data) => {
+    
+                    /* Recibe el mensaje más actual recibido y actualiza la ventana del chat */
+                    if($('#bodyChat').data('idChat') == data.id && !data.type){
+                        $('#bodyChat').append(message_glob(data.message,data.date,data.sendBy))
+                    }else{
+                        switch(data.type){
+                            case 'img':
+                                $('#bodyChat').append(message_img(data.message,data.date,data.sendBy,data.caption))
+                            break
+                            case 'video':
+                                $('#bodyChat').append(message_video(data.message,data.date,data.sendBy,data.caption))
+                            break
+                            case 'file':
+                                $('#bodyChat').append(message_file(data.message,data.date,data.sendBy,data.caption))
+                            break;
+                            case 'ogg':
+                                $('#bodyChat').append(message_ogg(data.message,data.date,data.sendBy,data.caption))
+                            break
+                            default:
+                            console.log(data)
+                        }
+                        
+                    }
+    
+                });
+    
+               /* Recibe el listado total de las cuentas y los chats  los actualiza en cuanto llegan*/
+                socket.on('newMessages',(data) => {
+                    console.log('LLEGO ALGO')
+                    accounts = data;
+    
+                    let html = ``
+                    data.forEach(item => {
+                        /* coloca el nombre de la cuenta */
+                        html+=`<h1>${item.nombre}</h1>`
+                        for (const chat in item.chats) {
+                            let _item = item.chats[`${chat}`]
+                            /* coloca un boton por chat */
+                            html+=`<p><button class="btn btn-success" onclick="openChat('${item.token}','${chat}')">${chat} ${ (_item.unRead) ? `(${_item.messages.length})` : '' }</button></p>`                        
+                        }
+                    });
+    
+                    $('#cuentas').html(html)
+                });
+                
+                socket.on('disconnect',(data) => {
+                    /* Te mando por los chescos por el token */
+                    console.log('Conneccion terminada',data)
+                })
+
+                
+    
+                socket.on('reconnect',() => {
+                    /* Si muere el serverSocket se seconecta solo */
+                    console.log('Conneccion reconnect')
+                })
             })
-        })
-    </script>
+        </script>
 </body>
 </html>
