@@ -372,8 +372,8 @@
 
         /* Global variables */
         let socket  = null;
-        const IP = 'http://localhost:3000'
-        const TOKEN = 'swccTTKXakAMWxLRxnAiz1q4' // token_socket of user
+        const IP = 'http://45.56.74.115:3000/'
+        const TOKEN = 'QFIXmB6pw5TYd6Yvgc3BM0Fj4' // token_socket of user
         let agent = {}
 
         $( document ).ready( () => {
@@ -388,7 +388,7 @@
 
             /* Alert to disconnection*/
             socket.on('disconnect',(data) => {
-                alert('The connection not is possible, communicate with operator.')
+                //alert('The connection not is possible, communicate with operator.')
                 off()
             })
 
@@ -453,7 +453,6 @@
                     agent.accounts[info.account].chats[info.chat.id] = info.chat
                     change()
                 }
-                console.log('changeInChat',chat)
             })
 
             /**************************************
@@ -462,7 +461,7 @@
             **************************************/
             socket.on('errorSendText',(error) => {
                 console.error(error)
-                    alert('Se perdio la conección porfavor refresca el navegador')
+                alert('Se perdio la conección porfavor refresca el navegador')
             })
 
             /***************************************

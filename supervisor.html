@@ -6,103 +6,253 @@
     <title> Supervisor </title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
     <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+    <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+    <script src="./Line Chart_files/Chart.min.js"></script>
+    <script src="./Line Chart_files/utils.js"></script>
+    <script src="https://momentjs.com/downloads/moment-with-locales.min.js"></script>
+    <style>
+        canvas{
+		    -moz-user-select: none;
+		    -webkit-user-select: none;
+		    -ms-user-select: none;
+	    }
+        ._target {
+             padding: 10px;
+            text-align: center;
+            font-size: 23px;
+            border-radius: 20px;
+        }
+        ._on {
+            background-color: #28a745;
+        }
+        ._out {
+            background-color: red;
+        }
+        /* Chats */
+        @keyframes chartjs-render-animation{from{opacity:.99}to{opacity:1}}.chartjs-render-monitor{animation:chartjs-render-animation 1ms}.chartjs-size-monitor,.chartjs-size-monitor-expand,.chartjs-size-monitor-shrink{position:absolute;direction:ltr;left:0;top:0;right:0;bottom:0;overflow:hidden;pointer-events:none;visibility:hidden;z-index:-1}.chartjs-size-monitor-expand>div{position:absolute;width:1000000px;height:1000000px;left:0;top:0}.chartjs-size-monitor-shrink>div{position:absolute;width:200%;height:200%;left:0;top:0}
+    </style>
 </head>
 <body>
-
+    <h1>Portal Supervisor/Admin <span class="badge" id="status_connection"></span> </h1>
     <div class="container">
+        <!-- ALERTAS -->
         <div class="row">
-            <div class="col-lg-12 text-center" style="padding-top:15px">
-                <h1>Portal agente</h1>
-            </div>
+            <div class="col-lg-12" id="alerts"></div>
         </div>
+        <!-- / -->
 
+        <!-- Targets -->
         <div class="row">
             <div class="col-lg-4">
-                <div class="row">
-                    <div class="col-lg-12 text-center">
-                        <h2>Mensajes</h2>
-                    </div>
+                <div class="_target">
+                    <p>Agents</p>
+                    <span id="agents">0</span>
                 </div>
-                <!-- ChatBox -->
-                    <div class="row" style="padding-top: 30px;border-color: #333;border-width: 4px;border-style: dotted;height: 600px;max-height: 600px;overflow: scroll;">
-                        <div class="col-lg-12" id="chatBox">
-                                
-                        </div>
-                    </div>
-                <!-- / -->
+            </div>
+            <div class="col-lg-4">
+                <div class="_target">
+                    <p>TT Open</p>
+                    <span id="ttOpen">0</span>
                 </div>
-            <div class="col-lg-2"></div>
-            <div class="col-lg-6">
-                <div class="row">
-                    <div class="col-lg-6" id="connectionStatus">
-                        
-                    </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="_target">
+                    <p>TT Closes</p>
+                    <span id="ttCloses">0</span>
                 </div>
             </div>
         </div>
+        <!-- / -->
+
+        <!-- Chart -->
+        <div class="row">
+            <div class="col-lg-12">
+                <canvas id="canvas" style="display: block; height: 534px; width: 1068px;" width="2136" height="1068" class="chartjs-render-monitor"></canvas>
+            </div>
+        </div>
+        <!-- / -->
     </div>
+    <div class="container" id="accounts">
+        
+    </div>
+
+    <!-- Modal view chat -->
+    <div class="modal fade" id="chatView" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="chatId">Modal title</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body" id="chatBody">
+                
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+          </div>
+        </div>
+    </div>
+    <!-- / -->
+
+     <!-- Modal view chat -->
+     <div class="modal fade" id="chatAgents" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="agentName">Modal title</h5>
+                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                </div>
+                <div class="modal-body" id="bodyChatAgent">
+                    
+                </div>
+                <div class="modal-footer">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <textarea class="form-control" id="messageAgent" rows="5"></textarea>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <button type="button" class="btn btn-success" onclick="sendToAgent()" id="btnSend" data-info="">Enviar</button>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                  
+                </div>
+              </div>
+            </div>
+        </div>
+        <!-- / -->
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script>
 
-        const chatItem = () => {
-            return `
-                <div class="card" style="width: 18rem;">
-                    <div class="card-footer">
-                        <p class="card-subtitle text-muted">Coca-cola</p>
-                    </div>
-                    <div class="card-body">
-                        <span class="badge-success" style="padding: 5px 7.5px;border-radius: 26px;font-size: 10px;position: absolute;right: 10%;">7</span>
-                        <h5 class="card-title">Numero</h5>
-                        <p class="card-subtitle text-muted">Abstrack text</p>
-                        <small class="card-text text-rigth">2018-12-12 12:12</small>
-                        <span class="badge-success">My Free or Block</span>
-                    </div>
-                </div>`
-        }
-
-        const off = () => {
-            $('#connectionStatus').html('<span class="badge badge-danger" id="status_connection"> offline</span>')
-        }
-
-        const on = () => {
-            $('#connectionStatus').html('<span class="badge badge-success" id="status_connection"> online </span>')
-        }
-
         /* Global variables */
         let socket  = null;
-        const IP = 'http://localhost:3000'
-        const TOKEN = 'Aj11caUk9SqM6qhvimxWpxS7' // token_socket of user
+        const IP = 'http://45.56.74.115:3000'
+        const TOKEN = 'CBFoVVktWvswlstLeuhZ0S3k' // token_socket of user
+        const accounts = {accounts:{}}
+        const chatsIn = {}
+
+        /*************************************
+        *  Configuration to chart in live    *
+        *  Last Update : 27-03-19 gama       *
+        **************************************/
+        const config = {
+            type: 'line',
+            data: {
+                labels: [moment().format('HH:MM:SS')],
+                datasets: [{
+                    id:'_in',
+                    label: 'TT Open',
+                    backgroundColor: window.chartColors.red,
+                    borderColor: window.chartColors.red,
+                    data: [
+                        0
+                    ],
+                    fill: false,
+                }, {
+                    id:'_out',
+                    label: 'TT Close',
+                    fill: false,
+                    backgroundColor: window.chartColors.blue,
+                    borderColor: window.chartColors.blue,
+                    data: [
+                        0
+                    ],
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Trafic today'
+                },
+                tooltips: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Value'
+                        }
+                    }]
+                }
+            }
+        };
+
+        /********************************
+        *  Update to chart in live      *
+        *  Last Update : 27-03-19 gama  *
+        ********************************/
+        const updateChart = (_in,out,time) => {
+           if(config.data.datasets[0].data.length > 20){
+                /* Delete last elements */
+                config.data.labels.shift()
+                config.data.datasets.forEach( (dataset) =>  dataset.data.shift() );
+           }
+
+           /* Add the new element */
+           config.data.labels.push(time)
+           config.data.datasets.forEach( (dataset) =>  dataset.data.push( (dataset.id == '_in') ? _in : out ) );
+           window.myLine.update();
+        }
 
         $( document ).ready( () => {
-
-            off()
 
             /* Connection to server socket */
             socket = io(`${IP}?token=${TOKEN}`);
 
             /* Confirm if the connection is successfully */
-            socket.on('connect',() => {
-                on()
-                console.log('Connecto')
-            } );
+            socket.on('connect',() => console.log('login success') );
 
             /* Alert to disconnection*/
-            socket.on('disconnect',(data) => {
-                alert('The connection not is possible, communicate with operator.')
-                off()
-            })
+            socket.on('disconnect',(data) => console.log('login failded') )
 
             /* Recconection */ 
-            socket.on('reconnect',() => on() )
+            socket.on('reconnect',() => console.log('login success') )
 
             /*************************************
             *  Receive initial info after login  *
             *  Last Update : 26-03-19 gama       *
             *************************************/
-            socket.on('welcomeSupervisor',(accounts) => {
+            socket.on('welcomeSupervisor',(_accounts) => {
+                accounts.id = _accounts.id
+                accounts.name = _accounts.name
+                accounts.socketId = _accounts.socketId
+                accounts.token = _accounts.token
+                accounts.user = _accounts.user
+                for (const account in _accounts.accounts) {
+                    accounts.accounts[account] = _accounts.accounts[account]
+                }
+                changeAccount();
                 console.log('welcomeSupervisor',accounts) 
             })
 
@@ -111,6 +261,11 @@
             *  Last Update : 26-03-19 gama      *
             ************************************/
             socket.on('loginAccount', account =>{
+                accounts.accounts[account.token] = {
+                    ...accounts.accounts[account.token],
+                    ...account
+                }
+                changeAccount()
                 console.log('loginAccount',account)
             })
 
@@ -119,6 +274,11 @@
             *  Last Update : 26-03-19 gama  *
             ********************************/
             socket.on('changeAccount', account =>{
+                accounts.accounts[account.token] = {
+                    ...accounts.accounts[account.token],
+                    ...account
+                }
+                changeAccount()
                 console.log('changeAccount',account)
             })
 
@@ -128,10 +288,367 @@
             *  Last Update : 26-03-19 gama  *
             ********************************/
             socket.on('accountDown',(account) => {
+                accounts.accounts[account.token] = {
+                    ...accounts.accounts[account.token],
+                    ...account
+                }
+                changeAccount()
                 console.log('accountDown',account)
             })
 
+            /* Receive ttclosed */
+            socket.on('updateTT',(account) => {
+                console.log('updateTT',account)
+                $('#ttCloses').text(account)
+                updateChart( $('#ttOpen').text(),$('#ttCloses').text(),moment().format('HH:MM:SS'))
+            })
+
+            /********************************
+            *  Create chart                 *
+            *  Last Update : 03-04-19 gama  *
+            ********************************/
+
+            var ctx = document.getElementById('canvas').getContext('2d');
+            window.myLine = new Chart(ctx, config);
+            
+            /********************************
+            *  Create tooltips              *
+            *  Last Update : 03-04-19 gama  *
+            ********************************/
+            $(function () {
+                $('[data-toggle="tooltip"]').tooltip()
+            })
+
+            /**********************************
+            *  Receive new messages of agent  *
+            *  Last Update : 03-04-19 gama    *
+            **********************************/
+            socket.on('receiveMessage',(message) => {
+                console.log('receiveMessage',message)
+                chatsIn[message.agent].push(message.message)
+                createConversation(chatsIn[message.agent],'#bodyChatAgent')
+            })
         })
+
+        /**************************************
+        *  Update the status in the accounts  *
+        *  Last Update : 05-04-19 gama        *
+        **************************************/
+        const changeAccount = () => {
+            /* Update Agents */
+            let agents = 0
+            for( account in accounts.accounts){
+                let _agents = Object.keys(accounts.accounts[account].usersLogin).length
+                agents+=_agents;
+            }
+            $('#agents').text(agents)
+
+            /* Update ttOpen */
+            let ttOpen = 0
+            for( account in accounts.accounts){
+                let _ttOpen = Object.keys(accounts.accounts[account].chats).length
+                ttOpen+=_ttOpen;
+            }
+            $('#ttOpen').text(ttOpen)
+
+            updateChart( $('#ttOpen').text(),$('#ttCloses').text(),moment().format('HH:MM:SS'))
+
+            updateAccounts()
+        }
+
+        /**************************************
+        *  Update the assig in the accounts   *
+        *  Last Update : 05-04-19 gama        *
+        **************************************/
+        const switchForce = (token) => {
+            if(confirm('Are you sure to change the type of message assignment?')){
+                setTimeout( () => socket.emit('changeAssing',{change:$(`#switch-${token}`).prop("checked"),account:token}) , 0)
+           }else{
+                let actual = $(`#switch-${token}`).prop("checked");
+                setTimeout( () =>  $(`#switch-${token}`).prop("checked",actual) , 0 )
+           }
+        }  
+        
+        const createConversation = (messages,id) => {
+            html = '';
+            for(let i = 0; i < messages.length; i++){
+                html+= `
+                    <div class="row">
+                        <div class="col-lg-6 ${ messages[i].sendBy != 'Client'  ? 'offset-lg-6' : ''}">
+                            <div style="
+                                width: fit-content;
+                                max-width: 100%;
+                                position: relative;
+                                left: 0px;
+                                padding: 5px;
+                                border-style: inset;
+                                border-radius: 18px;
+                                text-align: ${messages[i].sendBy == 'Client' ? 'left' : 'right'};
+                            ">
+                                ${ (messages[i].type == 'txt') ? `<p>${messages[i].message}</p>` 
+                                    : `<a href="http://${IP}/files?id=${messages[i].message}" target="_blank" rel="noopener noreferrer">Archivo</a>`}
+                                <small>${messages[i].date}</small>   
+                            </div>
+                    </div>
+                </div>`
+            }
+            $( id ? id : '#chatBody').html(html)
+        }
+
+        /******************************************
+        *  Open chat of agent or tt in the modal  *
+        *  Last Update : 05-04-19 gama            *
+        ******************************************/
+        const openChat = (token,account) => {
+            if(account){
+                /* IS tt */
+                let chat = accounts.accounts[account].chats[token]
+                $('#chatId').text(chat.id)
+                createConversation(chat.messages)
+                $('#chatView').modal('show')
+            }else{
+                let user = {}
+                for(account in accounts.accounts){
+                    for(user in accounts.accounts[account].usersLogin){
+                        if(accounts.accounts[account].usersLogin[user].token == token){
+                            user = accounts.accounts[account].usersLogin[user];
+                            break;
+                        }
+                    }
+                    if(user.name) break;
+                }
+                $('#agentName').text(user.name)
+                if(!chatsIn[user.token]) chatsIn[user.token] = []
+                $('#btnSend').data('info',user.token)
+                createConversation(chatsIn[user.token],'#bodyChatAgent')
+                $('#chatAgents').modal('show')
+            }
+        }
+
+        /******************************************
+        *  Open send inbox to message agent       *
+        *  Last Update : 05-04-19 gama            *
+        ******************************************/
+        const sendToAgent = () => {
+            if($('#messageAgent').val().trim() != ''){
+                let info = {
+                    agent : $('#btnSend').data('info'),
+                    message : {
+                        akc: 1,
+                        caption: false,
+                        date: moment().format('YYYY-MM-DD HH:mm'),
+                        message: $('#messageAgent').val(),
+                        sendBy: "Client",
+                        type: "txt"
+                    }
+                }
+                socket.emit('sendTextToAgent',info)
+                chatsIn[info.agent].push(info.message)
+                $('#messageAgent').val('')
+                createConversation(chatsIn[info.agent],'#bodyChatAgent')
+            }            
+        }
+
+        /******************************************
+        *  Free chat of agent                     *
+        *  Last Update : 05-04-19 gama            *
+        ******************************************/
+        const freeChat = (token,account) => {
+            if(confirm(`You are sure to remove the agent from this ticket?
+                *** The ticket can be chosen by any other agent`)){
+                socket.emit('freeTT',{token,account})
+            }
+        }
+
+        /************************************
+        *  Create component accountin body  *
+        *  Last Update : 05-04-19 gama      *
+        ************************************/
+        const accountContainer = (id,account) => {
+            return ` 
+            <!-- Account -->
+                <div class="container" id="${id}">
+                    <!-- Header -->
+                        <div class="row">
+                            <div class="col-lg-6">
+                                <h1>${account.nombre}  <span class="badge" id="status-${account.token}"></span> </h1>
+                            </div>
+                            <div class="col-lg-6" style=" padding-top: 15px;">
+                                <div class="custom-control custom-switch">
+                                    <input type="checkbox" ${ account.assingForce ? 'checked="true"' : ''}
+                                    class="custom-control-input" id="switch-${account.token}" >
+                                    <label class="custom-control-label" onclick="switchForce('${account.token}')" 
+                                    for="switch-${account.token}">Force Assing</label>
+                                </div> 
+                            </div>
+                        </div>
+                    <!-- / -->
+
+                    <!-- List agents and tt -->
+                        <div class="row">
+                            <!-- Agents -->
+                                <div class="col-lg-6" style="padding-bottom: 10px;border-width: 2px;border-style: ridge;max-height: 400px;overflow: scroll;">
+                                    <!-- Header -->
+                                        <div class="row">
+                                            <div class="col-lg-12">
+                                                <h1>Agents</h1>
+                                            </div>
+                                        </div>
+                                    <!-- / -->
+
+                                    <!-- Agent list-->
+                                        <div class="container" id="agentBody-${account.token}">
+
+                                </div>
+                            <!-- / -->
+                        </div>
+                    <!-- / -->
+
+                    <!-- TT -->
+                        <div class="col-lg-6" style="padding-bottom: 10px;border-width: 2px;border-style: ridge;max-height: 400px;overflow: scroll;">
+                            <!-- Header -->
+                                <div class="row">
+                                    <div class="col-lg-12">
+                                        <h1>Tickets open</h1>
+                                    </div>
+                                </div>
+                            <!-- / -->
+    
+                            <!-- Ticket list-->
+                                <div class="container" id="ttBody-${account.token}">
+                                   
+                                </div>
+                            <!-- / -->
+                        </div>
+                    <!-- / -->
+                </div>
+            <!-- / -->`
+        }
+
+        /************************************
+        *  Create item agent in body        *
+        *  Last Update : 05-04-19 gama      *
+        ************************************/
+        const itemAgent = (user,ttAsing) => {
+            let unRead = (chatsIn[user.token] && chatsIn[user.token][ chatsIn[user.token].length -1 ].sendBy == 'Agent') ? true : false
+            return `
+            <!-- Item -->
+                <div class="row" style="margin:0px;margin-bottom:5px;border-style: outset;border-radius: 10px;padding-top: 10px;" id="agent-${user.token}">
+                    <div class="col-lg-8">
+                        <p>${user.name}</p>
+                        <p id="tt-agent-${user.token}">TT assing : ${ttAsing}</p>
+                    </div>
+                    <div class="col-lg-4">
+                        <button class="btn ${unRead ? 'btn-success' : ''}" data-toggle="tooltip" data-placement="bottom" title="Chat con el agente" onclick="openChat('${user.token}')">
+                            <i class="fas fa-comments fa-4x"></i>
+                        </button>
+                    </div>
+                </div>
+            <!-- / -->`
+        }
+        
+        /************************************
+        *  Create component agent in body   *
+        *  Last Update : 05-04-19 gama      *
+        ************************************/
+        const updatItemsAgents = (account) => {
+            console.log(Object.keys(account.usersLogin))
+            for(_user in account.usersLogin){
+                console.log(_user)
+                console.log(account.usersLogin)
+                if(account.usersLogin && account.usersLogin[_user]){
+                    let user = account.usersLogin[_user]
+                    let ttAsing = 0;
+                    for(_account in user.accounts){
+                        for(chat in user.accounts[_account].chats){
+                            if(user.accounts[_account].chats[chat].agent.token == user.token){
+                                ttAsing+=1;
+                            }
+                        }
+                    }
+                    $(`#agentBody-${_account}`).append( itemAgent(user,ttAsing) )
+                }
+            }
+        }
+
+        /************************************
+        *  Create item ticket in body       *
+        *  Last Update : 05-04-19 gama      *
+        ************************************/
+        const itemTT = (tt,account) => {
+            return `
+                <!-- Item -->
+                    <div class="row" style="margin:0px;margin-bottom:5px;border-style: outset;border-radius: 10px;padding-top: 10px;">
+                        <div class="col-lg-8">
+                            <p>${tt.id}</p>
+                            <p>${tt.lastMessage.substring(0,20)}...<br><small>${tt.messages[tt.messages.length -1 ].date}</small></p>
+                            <p>${tt.agent.token ? tt.agent.name : 'out assing'}</p>
+                        </div>
+                        <div class="col-lg-4">
+                            <button data-toggle="tooltip" data-placement="bottom" title="View chat" onclick="openChat('${tt.id}','${account}')">
+                                <i class="fas fa-chalkboard-teacher fa-4x"></i>
+                            </button>
+                            <button data-toggle="tooltip" data-placement="bottom" title="Free chat" onclick="freeChat('${tt.id}','${account}')">
+                                <i class="fas fa-lock-open fa-4x"></i>
+                            </button>
+                        </div>
+                    </div>
+                <!-- / -->
+            `
+        }
+
+        /************************************
+        *  Create component ticket in body  *
+        *  Last Update : 05-04-19 gama      *
+        ************************************/
+        const updateTT = (account) => {
+            for(chat in account.chats){
+                if(account.chats[chat].id.indexOf('@') != -1){
+                    $(`#ttBody-${account.token}`).append( itemTT(account.chats[chat],account.token) );
+                }
+            }
+        }
+
+        /*********************************
+        *  Create component in the body  *
+        *  Last Update : 05-04-19 gama   *
+        *********************************/
+        const updateAccounts = () => {
+
+            for(_account in accounts.accounts){
+                let account =  accounts.accounts[_account];
+                
+                if(document.getElementById(`acount-${account.token}`)){
+                    $(`#agentBody-${account.token}`).html('')
+                    $(`#ttBody-${account.token}`).html('')
+                    updatItemsAgents(account)
+                    updateTT(account)
+                }else{
+                    $('#accounts').append( accountContainer(`acount-${account.token}`,account) )
+                    updatItemsAgents(account)
+                    updateTT(account)
+                }
+            }
+
+            tootltips();
+
+            /* Update status of account */
+            (account.accountDown) ? $(`#status-${account}`).removeClass('badge-success').addClass('badge-danger').text('Offline') 
+                    : $(`#status-${account}`).removeClass('badge-danger').addClass('badge-success').text('Online') 
+
+            /* Update status of account */
+            $(`#switch-${account}`).prop("checked",accounts.accounts[_account].assingForce)  
+        }
+
+        /********************************
+        *  Create tooltips              *
+        *  Last Update : 03-04-19 gama  *
+        ********************************/
+        const tootltips = () => {
+            $(function () {
+                $('[data-toggle="tooltip"]').tooltip()
+            })
+        }
     </script>
 </body>
 </html>
