@@ -144,7 +144,7 @@
         /* Global variables */
         let socket  = null;
         const IP = 'http://45.56.74.115:3000'
-        const TOKEN = 'CBFoVVktWvswlstLeuhZ0S3k' // token_socket of user
+        const TOKEN = prompt('Token') // token_socket of user
         const accounts = {accounts:{}}
         const chatsIn = {}
 
@@ -530,7 +530,7 @@
         *  Last Update : 05-04-19 gama      *
         ************************************/
         const itemAgent = (user,ttAsing) => {
-            let unRead = (chatsIn[user.token] && chatsIn[user.token][ chatsIn[user.token]c.length -1 ].sendBy == 'Agent') ? true : false
+            let unRead = (chatsIn[user.token] && chatsIn[user.token][ chatsIn[user.token].length -1 ].sendBy == 'Agent') ? true : false
             return `
             <!-- Item -->
                 <div class="row" style="margin:0px;margin-bottom:5px;border-style: outset;border-radius: 10px;padding-top: 10px;" id="agent-${user.token}">

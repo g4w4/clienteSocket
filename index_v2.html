@@ -373,7 +373,7 @@
         /* Global variables */
         let socket  = null;
         const IP = 'http://45.56.74.115:3000/'
-        const TOKEN = 'QFIXmB6pw5TYd6Yvgc3BM0Fj4' // token_socket of user
+        const TOKEN = '' // token_socket of user
         let agent = {}
 
         $( document ).ready( () => {
@@ -481,7 +481,7 @@
                     form.append('token',TOKEN)
 
                     $.ajax({
-                        url: IP+"/uploadMedia",
+                        url: IP+"uploadMedia",
                         method: 'post',
                         data: form,
                         "async": true,
@@ -510,11 +510,11 @@
                         $('#preview').attr('style','display:block')
                         let html = '';
                         html+= (result.type == 'image') ?
-                            `<img src="${IP}/file?id=${result.name}" width="100%"><input type="text" name="" id="caption"  placeholder="mensaje">` : 
+                            `<img src="${IP}file?id=${result.name}" width="100%"><input type="text" name="" id="caption"  placeholder="mensaje">` : 
                             (result.type == 'video') ? 
-                                `<video src="${IP}/file?id=${result.name}" width="100%" controls>
+                                `<video src="${IP}file?id=${result.name}" width="100%" controls>
 
-                                </video><input type="text" name="" id="caption" placeholder="mensaje">`:`<a href="${IP}/file?id=${result.name}" target="_blank" rel="noopener noreferrer">Descargar</a>`
+                                </video><input type="text" name="" id="caption" placeholder="mensaje">`:`<a href="${IP}file?id=${result.name}" target="_blank" rel="noopener noreferrer">Descargar</a>`
 
                         html+= `<button class="btn-success" onclick="sendFile('${result.type}','${result.name}')"> Enviar</button>`
 
