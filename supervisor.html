@@ -144,7 +144,7 @@
         /* Global variables */
         let socket  = null;
         const IP = 'http://45.56.74.115:3000'
-        const TOKEN = prompt('Token') // token_socket of user
+        const TOKEN = 'blzDEQpTUwV7ZukvmS8qyEDh' // token_socket of user
         const accounts = {accounts:{}}
         const chatsIn = {}
 
@@ -323,9 +323,12 @@
             *  Receive new messages of agent  *
             *  Last Update : 03-04-19 gama    *
             **********************************/
+/* 24) Recibe los mensajes del agente */
             socket.on('receiveMessage',(message) => {
                 console.log('receiveMessage',message)
+/* 25) Actualiza en la variable local el mensaje */
                 chatsIn[message.agent].push(message.message)
+/* 26) Actualiza el modal del chat */
                 createConversation(chatsIn[message.agent],'#bodyChatAgent')
             })
         })
@@ -338,16 +341,26 @@
             /* Update Agents */
             let agents = 0
             for( account in accounts.accounts){
-                let _agents = Object.keys(accounts.accounts[account].usersLogin).length
-                agents+=_agents;
+                if(accounts.accounts[account].usersLogin){
+                    let _agents = Object.keys(accounts.accounts[account].usersLogin).length
+                    agents+=_agents;
+                }
             }
             $('#agents').text(agents)
 
-            /* Update ttOpen */
+/* 30) CAMBIO en el conteo de tt abiertos */
             let ttOpen = 0
             for( account in accounts.accounts){
-                let _ttOpen = Object.keys(accounts.accounts[account].chats).length
-                ttOpen+=_ttOpen;
+                if(accounts.accounts[account].chats){
+/* 31) Se agrego un reduce para eliminar los chats que son de agente y supervisores */
+                    let _ttOpen = Object.keys(accounts.accounts[account].chats).reduce( (i,c) => {
+                        let tt_Open = (isNaN(i)) ? (i.indexOf('@') != -1) ? 1 : 0 : i
+                        tt_Open+= (c.indexOf('@') != -1) ? 1 : 0
+                        return tt_Open
+                    })
+                    ttOpen+=_ttOpen;
+                }
+                
             }
             $('#ttOpen').text(ttOpen)
 
@@ -399,7 +412,9 @@
         *  Open chat of agent or tt in the modal  *
         *  Last Update : 05-04-19 gama            *
         ******************************************/
+/* 9) Comparte la funcion el chat con el agente y el chat del TT */
         const openChat = (token,account) => {
+/* 10) Si es un chat del TT se crea la conversación y se abre el modal de la vista del tt*/
             if(account){
                 /* IS tt */
                 let chat = accounts.accounts[account].chats[token]
@@ -407,20 +422,36 @@
                 createConversation(chat.messages)
                 $('#chatView').modal('show')
             }else{
+/* 11) Si es el chat de algún agente, se busca el chat o se crea para poder conversar */
                 let user = {}
+                let _accountOfChat = null;
+/* 12) itera las cuentas y sus usuarios conectados hasta que encuenta el token del usuario al que pertenece el chat y la cuenta */
                 for(account in accounts.accounts){
                     for(user in accounts.accounts[account].usersLogin){
                         if(accounts.accounts[account].usersLogin[user].token == token){
                             user = accounts.accounts[account].usersLogin[user];
+                            _accountOfChat = account;
                             break;
                         }
                     }
                     if(user.name) break;
                 }
+
                 $('#agentName').text(user.name)
-                if(!chatsIn[user.token]) chatsIn[user.token] = []
+/* 13) Agrega al boton de enviar mensaje el token del usuario como key para poder enviar los mensajes */
                 $('#btnSend').data('info',user.token)
+
+/* 14) Valida si existe un chat previo entre ellos y que no se tenga uno ya inicializado , para ello ocupa el user del agente y user del supervisor*/
+                if( !chatsIn[user.token] && accounts.accounts[_accountOfChat].chats &&  accounts.accounts[_accountOfChat].chats[`${accounts.user}_${user.user}`]){
+/* 15) Si lo encuentra lo actualiza en la variable global chatsIn pero*/
+                    chatsIn[user.token] = accounts.accounts[_accountOfChat].chats[`${accounts.user}_${user.user}`].messages
+                    console.log('Encontro algo',accounts.accounts[_accountOfChat].chats[`${accounts.user}_${user.user}`])
+                }else if(!chatsIn[user.token]){
+/* 16) Si no existe un inicializado y no hay historial entonces solo crea el chat vacio */
+                    chatsIn[user.token] = []
+                }
                 createConversation(chatsIn[user.token],'#bodyChatAgent')
+/* 17) Abre el modal de chat con el agente */
                 $('#chatAgents').modal('show')
             }
         }
@@ -429,9 +460,12 @@
         *  Open send inbox to message agent       *
         *  Last Update : 05-04-19 gama            *
         ******************************************/
+/* 18) Envia el mensage al agente */
         const sendToAgent = () => {
             if($('#messageAgent').val().trim() != ''){
+/* 19) Crea el formato para enviar el mensaje */
                 let info = {
+/* 20) Saca la información del data agregado en el paso "13" */
                     agent : $('#btnSend').data('info'),
                     message : {
                         akc: 1,
@@ -442,9 +476,12 @@
                         type: "txt"
                     }
                 }
+/* 21) Envia el mensaje el Server socket */
                 socket.emit('sendTextToAgent',info)
+/* 22) Guarda el mensaje enviado en el historico local */
                 chatsIn[info.agent].push(info.message)
                 $('#messageAgent').val('')
+/* 23) Actualiza la información en el modal */
                 createConversation(chatsIn[info.agent],'#bodyChatAgent')
             }            
         }
@@ -529,8 +566,10 @@
         *  Create item agent in body        *
         *  Last Update : 05-04-19 gama      *
         ************************************/
+/* 7) Crea la targeta con la informcación del agente ( nombre, tt asigandos y si tiene un mensage el supervisor sin leer de parte del agente )*/
         const itemAgent = (user,ttAsing) => {
-            let unRead = (chatsIn[user.token] && chatsIn[user.token][ chatsIn[user.token].length -1 ].sendBy == 'Agent') ? true : false
+/* 8) Si da true es que tiene un mensaje sin leer si no da false */
+            let unRead = (chatsIn[user.token] && chatsIn[user.token][ chatsIn[user.token].length -1 ] && chatsIn[user.token][ chatsIn[user.token].length -1 ].sendBy == 'Agent') ? true : false
             return `
             <!-- Item -->
                 <div class="row" style="margin:0px;margin-bottom:5px;border-style: outset;border-radius: 10px;padding-top: 10px;" id="agent-${user.token}">
@@ -539,7 +578,8 @@
                         <p id="tt-agent-${user.token}">TT assing : ${ttAsing}</p>
                     </div>
                     <div class="col-lg-4">
-                        <button class="btn ${unRead ? 'btn-success' : ''}" data-toggle="tooltip" data-placement="bottom" title="Chat con el agente" onclick="openChat('${user.token}')">
+                        <button class="btn ${unRead ? 'btn-success' : ''}" data-toggle="tooltip" data-placement="bottom" title="Chat con el agente" 
+                            onclick="openChat('${user.token}')">
                             <i class="fas fa-comments fa-4x"></i>
                         </button>
                     </div>
@@ -551,23 +591,28 @@
         *  Create component agent in body   *
         *  Last Update : 05-04-19 gama      *
         ************************************/
+/* 3) Actualiza las targetas de los agentes conectados */
         const updatItemsAgents = (account) => {
-            console.log(Object.keys(account.usersLogin))
-            for(_user in account.usersLogin){
-                console.log(_user)
-                console.log(account.usersLogin)
-                if(account.usersLogin && account.usersLogin[_user]){
-                    let user = account.usersLogin[_user]
-                    let ttAsing = 0;
-                    for(_account in user.accounts){
-                        for(chat in user.accounts[_account].chats){
-                            if(user.accounts[_account].chats[chat].agent.token == user.token){
-                                ttAsing+=1;
+            if(account.usersLogin){
+                console.log('Estos son los usuarios encontrados',Object.keys(account.usersLogin))
+                for(_user in account.usersLogin){
+/* 4) Valida si hay usuarios en la cuenta y si existe el usuario */
+                    if(account.usersLogin && account.usersLogin[_user]){
+                        let user = account.usersLogin[_user]
+                        let ttAsing = 0;
+/* 5) Cuenta cuantos tt tiene asiganodos */
+                        for(_account in user.accounts){
+                            for(chat in user.accounts[_account].chats){
+/* 5.1) CAMBIO Se agrego esta validación para que no cuente el chat con el admin/supervisor*/
+                                if(user.accounts[_account].chats[chat].agent.token == user.token && user.accounts[_account].chats[chat].id.indexOf('@') != -1){
+                                    ttAsing+=1;
+                                }
                             }
                         }
+/* 6) Manda crear una targeta con la inforcación del agente conectado */
+                        $(`#agentBody-${_account}`).append( itemAgent(user,ttAsing) )
                     }
-                    $(`#agentBody-${_account}`).append( itemAgent(user,ttAsing) )
-                }
+                }    
             }
         }
 
@@ -603,7 +648,9 @@
         ************************************/
         const updateTT = (account) => {
             for(chat in account.chats){
+/* 28) Valida que los chats no sean de agentes y supervisores */
                 if(account.chats[chat].id.indexOf('@') != -1){
+/* 29) Agrega la targeta */
                     $(`#ttBody-${account.token}`).append( itemTT(account.chats[chat],account.token) );
                 }
             }
@@ -613,15 +660,17 @@
         *  Create component in the body  *
         *  Last Update : 05-04-19 gama   *
         *********************************/
+/* 1) Es llamado cuando ocurre algún cambio en el obj de cuentas */
         const updateAccounts = () => {
 
             for(_account in accounts.accounts){
                 let account =  accounts.accounts[_account];
-                
+/* 2) Verifica si existe el contenedor de las targetas de las cuentas */                
                 if(document.getElementById(`acount-${account.token}`)){
                     $(`#agentBody-${account.token}`).html('')
                     $(`#ttBody-${account.token}`).html('')
                     updatItemsAgents(account)
+/* 27) Actaliza las targetas de los tt */
                     updateTT(account)
                 }else{
                     $('#accounts').append( accountContainer(`acount-${account.token}`,account) )

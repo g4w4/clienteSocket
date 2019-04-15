@@ -373,7 +373,7 @@
         /* Global variables */
         let socket  = null;
         const IP = 'http://45.56.74.115:3000/'
-        const TOKEN = '' // token_socket of user
+        const TOKEN = prompt('TOKEN') // token_socket of user
         let agent = {}
 
         $( document ).ready( () => {
@@ -390,6 +390,7 @@
             socket.on('disconnect',(data) => {
                 //alert('The connection not is possible, communicate with operator.')
                 off()
+                console.log('Murio la sesión')
             })
 
             /* Recconection */ 
@@ -581,6 +582,10 @@
                 console.log(error)
                alert('Ticket no cerrado '+error)
                $('#closeTicket').modal('hide')
+            })  
+
+            socket.on('closeSesion',(error) => {
+                console.log('Aqui se fuerza el cierre de sesión')
             })  
 
         })
