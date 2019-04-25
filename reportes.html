@@ -13,6 +13,7 @@
 <body>
     <div class="container">
         <div class="row" style="padding: 15px;">
+            <!-- No sirve solo es ilustrativo -->
             <div class="col-lg-12">
                 <label for="">Inicio</label>
                 <input type="datetime" name="" id="" placeholder="YYYY-MM-DD">
@@ -52,6 +53,7 @@
                         <th scope="col">estatus</th>
                         <th scope="col">fecha</th>
                         <th scope="col">numero</th>
+                        <th>Opciones</th>
                     </tr>
                 </thead>
                 <tbody id="tb">
@@ -104,7 +106,13 @@
                     <td>${estatus}</td>
                     <td>${fecha}</td>
                     <td>${numero}</td>
+                    <td><button class="btn btn-success" onclick="verChat(${id})">Ver Chat</button></td>
                 </tr>`
+    }
+
+    /* muestra el chat */
+    const verChat = (id) => {
+        console.log(id)
     }
 
 		window.onload = function() {
