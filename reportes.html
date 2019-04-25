@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title> Agente </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+    <script src="./Line Chart_files/Chart.min.js"></script>
+    <script src="./Line Chart_files/utils.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="row" style="padding: 15px;">
+            <div class="col-lg-12">
+                <label for="">Inicio</label>
+                <input type="datetime" name="" id="" placeholder="YYYY-MM-DD">
+                <label for="">Fin</label>
+                <input type="datetime" name="" placeholder="YYYY-MM-DD">
+                <button class="btn btn-success">Buscar</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-12 text-center" style="padding-top:15px">
+                <h1>Reportes</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-4">
+                <h2>Agentes hit</h2>
+                <canvas id="agents"></canvas>
+            </div>
+            <div class="col-lg-4">
+                <h2>Categorias hit</h2>
+                <canvas id="cat"></canvas>
+            </div>
+            <div class="col-lg-4">
+                <h2>Status hit</h2>
+                <canvas id="status"></canvas>
+            </div>
+        </div>
+        <div class="row">
+            <h1>Reporte</h1>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">agente</th>
+                        <th scope="col">categoria</th>
+                        <th scope="col">cuenta</th>
+                        <th scope="col">estatus</th>
+                        <th scope="col">fecha</th>
+                        <th scope="col">numero</th>
+                    </tr>
+                </thead>
+                <tbody id="tb">
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script>
+
+    /* crea la grafica recibe el objeto del resumen, id del canvas y el titulo */
+    const chartsNew = (info,chart,items) => {
+
+		var config = {
+			type: 'pie',
+			data: {
+				datasets: [{
+					data: Object.values(info), // Obtenemos el valores del objeto
+					backgroundColor: [
+						window.chartColors.red,
+						window.chartColors.orange,
+						window.chartColors.yellow,
+						window.chartColors.green,
+						window.chartColors.blue,
+					],
+					label: items
+				}],
+				labels: Object.keys(info) //Obtenemos las llaves del objeto
+			},
+			options: {
+				responsive: true
+			}
+		};
+
+        var ctx = document.getElementById(chart).getContext('2d');
+        window.myPie = new Chart(ctx, config);
+    }   
+
+    /* Crea una nueva fila en la tabla */
+    const newRow = ({agente,categoria,cuenta,estatus,fecha,id,numero}) => {
+        console.log(agente,categoria,cuenta,estatus,fecha,id,numero)
+        return ` <tr>
+                    <th scope="row">${id}</th>
+                    <td>${agente}</td>
+                    <td>${categoria}</td>
+                    <td>${cuenta}</td>
+                    <td>${estatus}</td>
+                    <td>${fecha}</td>
+                    <td>${numero}</td>
+                </tr>`
+    }
+
+		window.onload = function() {
+
+            /* Cuando todo esta listo llamo la funcion de reportes */
+
+            var settings = {
+                "async": true,
+                "crossDomain": true,
+                "url": "http://ws-voices.com.mx:6070/reports/get",
+                "method": "POST",
+                "headers": {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+                "data": {
+                    "inicio": "2018-01-01", //Inicio de busqueda
+                    "fin": "2019-10-01", // Fin de busqueda
+                    "id": "65" // ID del usuario
+                }
+            }
+
+            $.ajax(settings).done(function (response) {
+                console.log('Esto responde ',response);
+                
+
+                /* Creamos las graficas */
+                chartsNew(response.data.agentHit,'agents','Agentes')
+                chartsNew(response.data.statusHit,'status','Estatus')
+                chartsNew(response.data.categoryHit,'cat','Categorias')
+
+                /* Crea la tabla */
+                let html = '';
+                for(let i = 0; i < response.data.report.length; i++){
+                    html+=newRow(...response.data.report)
+                }
+                $('#tb').html(html)
+            });
+
+        };
+        
+    </script>
+</body>
+</html>
