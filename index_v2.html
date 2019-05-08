@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <script src="https://socket-io-chat.now.sh/socket.io/socket.io.js" ></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
 </head>
 <body>
 
@@ -18,6 +19,15 @@
         </div>
 
         <div class="row">
+<!-- BOTON DE CONTACTOS -->
+<button style="
+    position: absolute;
+    right: 0;
+    padding: 20px 25px;
+    border-style: outset;
+    border-radius: 54px;
+" onclick="getContacts()"> <i class="fa fa-user"></i> </button>
+<!-- / -->
             <div class="col-lg-4">
                 <div class="row">
                     <div class="col-lg-12 text-center">
@@ -50,7 +60,7 @@
                                 <h2 id="chat_title">ChatID</h2>
                         </div>
                         <div class="col-lg-2">
-                                <button class="btn-success" onclick="closeTT()">Cerrar TT</button>
+                                <button class="btn-success" onclick="$('#closeTt').modal('show')">Cerrar TT</button>
                         </div>
                     </div>
                     <div class="col-lg-12" id="chat_body" style="padding-top: 30px;border-color: #333;border-width: 4px;border-style: dotted;height: 450px;max-height: 450px;overflow: scroll;">
@@ -145,6 +155,87 @@
                     </div>
                 </div>
                 <!-- / -->
+
+                <!-- Modal list contacts -->
+                <div class="modal" tabindex="-1" role="dialog" id="contacModal" >
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Contacts</h5>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+                                    <div class="col-lg-12" id="listContact">
+                                       
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- / -->
+
+
+                <!-- MODAL CLOSE TT -->
+                <div class="modal fade " id="closeTt" tabindex="-1" role="dialog"  data-backdrop="static" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="exampleModalLabel">Cerrar ticket </h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row" >
+                                <div class="col-lg-12" id="infoTt">
+                                    <h3>Información del ticket</h3>
+                                    <div class="form-group">
+                                        <label for="name">Categoria</label>
+                                        <input type="text" class="form-control" id="categoryTt">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="exampleFormControlSelect1">Estatus</label>
+                                        <select class="form-control" id="statusTt">
+                                            <option>Abierto</option>
+                                            <option>Cerrado</option>
+                                            <option>Abandono</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="name">Descripcion</label>
+                                        <input type="text" class="form-control" id="desciptionTt">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-lg-12" id="infoClient">
+                                    <h3>Información del cliente</h3>
+                                    <div class="form-group">
+                                        <label for="name">Nombre</label>
+                                        <input type="text" class="form-control" id="name" placeholder="Nombre del cliente">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="name">Identificador del cliente</label>
+                                        <input type="text" class="form-control" id="idClient">
+                                    </div>
+
+                                    
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-info"onclick="addInput()">Add info</button>
+                            <button type="button" class="btn btn-primary" onclick="closeTT()">Save changes</button>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- / -->      
+
             </div>
         </div>
     </div>
@@ -337,44 +428,109 @@
             }
         }
 
-        /*****************************************
-        *  Close tt in the system and save chat  *
-        *  Last Update : 28-03-19 gama           *
-        *****************************************/
+
+        /* Envia el TT */
         const closeTT = () => {
-            let chat_id = $('#chat_body').attr('idChat')
-            if(chat_id){
-                let chat = chat_id.split('__')[1]
-                let account = chat_id.split('__')[0]
-                if(agent.accounts[account].chats[chat].agent.token == TOKEN || !agent.accounts[account].chats[chat].agent.token){
-                    let category = prompt('Cual es la categoría');
-                    let status = prompt('Estatus (abando,cerrado)')
-                    let nota = prompt('Alguna nota o descripción ?')
-                    try {
-                        if(category.trim() != '' && status.trim() != '' && nota.trim() != ''){
-                            $('#closeTicket').modal('show')
-                            socket.emit('closeTT',{category,status,nota,chat,account})
-                        }else{
-                            alert('Complete los datos correctamente')
-                        }
-                    } catch (error) {
-                        alert('Complete los datos correctamente')
-                    }
-                }else{
-                    alert('No tienes acceso a este chat')
-                }
-                
-            }else{
-                alert('No tienes acceso a este chat')
+            try {
+                $('#closeTicket').modal('show')
+                /* Crea el objeto que recibe el socket */
+                let info = {
+                category : $('#categoryTt').val().trim(),
+                description : $('#desciptionTt').val().trim(), 
+                status : $('#statusTt').val().trim(),
+                allInfo : {
+                    name : $('#name').val().trim(),
+                    idClient : $('#idClient').val().trim()
+                } 
             }
+
+            /* llama todos los elementos que se añadieron al cerrar el tt */
+            let keysAdd = document.getElementsByName('allinfo')
+
+            /* Itera sobre ellos y agrega al objeto en el indice allInfo */
+            keysAdd.forEach(element => {
+                let key = element.querySelectorAll("input[name='key']")[0].value.replace(/ /g,'')
+                let value = element.querySelectorAll("input[name='value']")[0].value
+                info.allInfo[key] = value
+            });
+
+            /* Recompila el resto de la información */
+            let chat_id = $('#chat_body').attr('idChat')
+
+            /* Valida si el chat esta abierto */
+            if(!chat_id){ throw Error('No hay chat abierto') }
+
+            let chat = chat_id.split('__')[1]
+            let account = chat_id.split('__')[0]
+            let infoId = agent.accounts[account].chats[chat].infoId;
+
+            socket.emit('closeTT',{
+                chat,
+                account,
+                info,
+                infoId
+            })
+
+            /* Cuando envia se abre un modal de carga que 
+                desaparecera cuando reciba una emision en 
+                socket.on('successCloseTt')
+                socket.on('errorCloseTt')
+                que se encuentran más abajo
+            */
+
+
+            } catch (error) {
+                $('#closeTicket').modal('hide')
+                alert(error); 
+            }
+
+        }
+
+        /* Agrega los input al formulario */
+        const addInput = () => {
+            $('#infoClient').append(`<div class="form-inline" name="allinfo">
+                                <div class="form-group mb-2">
+                                    <input type="text" class="form-control" name="key" value=""  placeholder="Clave">
+                                </div>
+                                <div class="form-group mx-sm-3 mb-2">
+                                    <input type="text" class="form-control" name="value" value=""  placeholder="Valor">
+                                </div>
+                                <button type="button" class="btn btn-danger mb-2" onclick="delInput(this)">Borrar</button>
+                            </div>`
+                        )
+        }
+
+        /* Borra los input */
+        const delInput = (value) => {
+            $(value).parent().remove()
         }
 
 
+/* 6. VAlida si se quiere enviar mensaje a ese cliente */        
+        const sendMessage = (id) => {
+            if(confirm('Desea interactuar nuevamente con el cliente ?')){
+                let message = prompt('Escriba el mensaje')
+                if(message.trim() != ''){
+/* 7. Envia el mensaje */
+                    console.log(message,id)
+                    socket.emit('reopeningTicket',{message,id,token:TOKEN})
+                }else{
+                    alert('Escriba un mensaje valido')
+                }
+            }
+        }
+
         /* Global variables */
         let socket  = null;
-        const IP = 'http://45.56.74.115:3000/'
-        const TOKEN = prompt('TOKEN') // token_socket of user
+        const IP = 'http://desarrollo.ws-voices.com.mx:3000/'
+        const TOKEN = 'FCcnD0PkoptrF31pKV9BTx2J' // token_socket of user
         let agent = {}
+
+
+/* 3. getContacts llama la lista de contactos */
+        const getContacts = () => {
+            socket.emit('getContacts',TOKEN)
+        }
 
         $( document ).ready( () => {
 
@@ -552,33 +708,17 @@
                 $('#sendFile').modal('hide')
             })
 
-            /**********************************
-            *  Wait confirmation of close TT  *
-            *  Last Update : 28-03-19 gama    *
-            **********************************/
-            socket.on('closeSuccess',(info) => {
-                console.log('closeSuccess',info)
-                /* Delete chat */
-                let _newChats = {}
-                for(chat in agent.accounts[info.token].chats){
-                    if(chat != info.chat){
-                        _newChats[chat] = agent.accounts[info.token].chats[chat]
-                    }
-                }
-                agent.accounts[info.token].chats = _newChats;
-
+  
+            socket.on('successCloseTt',(info) => {
                 /* close modal */
                 $('#closeTicket').modal('hide')
+                $('#closeTt').modal('hide')
                 $('#chat_title').html('CHAT ID')
                 $('#chat_body').attr('idChat','')
                 $('#chat_body').html('')
             })
 
-           /*********************************
-            *  Wait error in the close TT   *
-            *  Last Update : 28-03-19 gama  *
-            *********************************/
-            socket.on('closeError',(error) => {
+            socket.on('errorCloseTt',(error) => {
                 console.log(error)
                alert('Ticket no cerrado '+error)
                $('#closeTicket').modal('hide')
@@ -586,8 +726,31 @@
 
             socket.on('closeSesion',(error) => {
                 console.log('Aqui se fuerza el cierre de sesión')
-            })  
+            })
+            
 
+/* 4. Recibe la lista de contactos */
+            socket.on('contactsList', (data) => {
+                $('#contacModal').modal('show')
+                let html = '';
+/* 5. Agrega los items al modal */
+                for(let i = 0; i < data.length; i++){
+                    html+=` <div class="row" onclick="() => console.log('click')">
+                                <div class="col-lg-8">
+                                    <p style="margin: 0px;">Nombre : ${data[i].nombre}</p>
+                                    <p style="margin: 0px;">UUID : ${data[i].uuid}</p>
+                                    <p style="margin: 0px;">Ultimo tt : ${data[i].ultimoTT}</p>
+                                    <p style="margin: 0px;">Fecha : ${data[i].fecha}</p>
+                                    <p style="margin: 0px;">Desc : ${data[i].descripcion}</p>
+                                </div>
+                                <div class="col-lg-4">
+                                    <button class="btn-info" onclick="sendMessage('${data[i].id}')"> <i class="far fa-comments"></i> </button>
+                                </div>
+                            </div>`
+                }
+                $('#listContact').html(html)
+            })
+            
         })
     </script>
 </body>
