@@ -60,7 +60,8 @@
                                 <h2 id="chat_title">ChatID</h2>
                         </div>
                         <div class="col-lg-2">
-                                <button class="btn-success" onclick="$('#closeTt').modal('show')">Cerrar TT</button>
+                                <button class="btn-success" onclick="openCloseTT()">Cerrar TT</button>
+                                <button class="btn-info" onclick="openInfoClient()">Información del cliente</button>
                         </div>
                     </div>
                     <div class="col-lg-12" id="chat_body" style="padding-top: 30px;border-color: #333;border-width: 4px;border-style: dotted;height: 450px;max-height: 450px;overflow: scroll;">
@@ -234,7 +235,18 @@
                         </div>
                     </div>
                 </div>
-                <!-- / -->      
+                <!-- / -->   
+                
+                <!-- Modal InfoClient -->
+                <div class="modal" tabindex="-1" role="dialog" id="infoClientModal" >
+                    <div class="modal-dialog" role="document">
+                        <div class="card" style="width: 30rem;">
+                            <div class="card-body" id="idInfoClient">
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             </div>
         </div>
@@ -429,6 +441,98 @@
         }
 
 
+        const cleanCloseTT = () => {
+            /* limpia el formulario */
+            $('#categoryTt').val('')
+            $('#desciptionTt').val('')
+            $('#statusTt').val('')
+            $('#name').val('')
+            $('#idClient').val('')
+
+            /* Limpia los input agregados*/
+            while(  document.getElementsByName('allinfo').length > 0 ){
+                document.getElementsByName('allinfo')[0].remove()
+            }
+        }
+
+        /* Muestra la info del cliente */
+        const openInfoClient = () => {
+            try {
+                /* Es importante que se pueda navegar en el chat con el modal abierto 
+                    y que este solo se cierre con el boton de cerrar 
+                */
+
+                /* Valida si el chat esta abierto */
+                let chat_id = $('#chat_body').attr('idChat')
+                if(!chat_id){ throw Error('No hay chat abierto') }
+
+                /* Optengo la info del chat */
+                let chat = chat_id.split('__')[1]
+                let account = chat_id.split('__')[0]
+
+                /* optengo toda la info del chat*/
+                let allInfo = agent.accounts[account].chats[chat].allInfo
+
+                /* Si tiene información precargada la muestro si no informo*/
+                    if(allInfo.idClient){
+                        $('#idInfoClient').html('')
+                        /* Itero con la info precargada */
+                        $('#idInfoClient').append(` <h5 class="card-title" id="idNameClient">Cliente : ${allInfo.name}</h5>`)
+                        $('#idInfoClient').append(` <h6 class="card-subtitle mb-2 text-muted" id="lastUpdateInfo">Ultima actualizacion : ${allInfo.lastUpdate}</h6>`)
+                        for (const key in allInfo) {
+                            if(key != 'name' && key != 'lastUpdate'){
+                                $('#idInfoClient').append(`<h6 class="card-text mb-2 text-muted"> ${key} : ${allInfo[key]}</h6>`)
+                            }  
+                        }
+
+                        $('#infoClientModal').modal('show')
+                    }else{ throw Error('Cliente nuevo no tiene datos') }
+            } catch (error) {
+                alert(error)
+            }
+        }
+
+        /* Abre y precarga la info de cerrado de TT */
+        const openCloseTT = () => {
+            try {
+                /* Es importante que se pueda navegar en el chat con el modal abierto 
+                    y que este solo se cierre con el boton de cerrar 
+                */
+                cleanCloseTT()
+                /* Valida si el chat esta abierto */
+                let chat_id = $('#chat_body').attr('idChat')
+                if(!chat_id){ throw Error('No hay chat abierto') }
+
+                /* Optengo la info del chat */
+                let chat = chat_id.split('__')[1]
+                let account = chat_id.split('__')[0]
+
+                /* optengo toda la info del chat*/
+                let allInfo = agent.accounts[account].chats[chat].allInfo
+
+                /* Si tiene información precargada la actualizo en el 
+                    modal si no se queda como esta*/
+                if(allInfo.idClient){
+                    $('#name').val(allInfo.name)
+                    $('#idClient').val(allInfo.idClient)
+
+                    /* Itero con la info precargada */
+                    for (const key in allInfo) {
+                        if (key != 'name' && key != 'idClient' && key != 'lastUpdate') {
+                            addInputWhitInfo(key,allInfo[key])
+                        }
+                    }
+                }
+                
+                $('#closeTt').modal('show')
+                
+                
+            } catch (error) {
+                alert(error)
+                console.error('openCloseTT',error)
+            }
+        }
+
         /* Envia el TT */
         const closeTT = () => {
             try {
@@ -500,25 +604,24 @@
                         )
         }
 
+        const addInputWhitInfo = (key,value) => {
+            $('#infoClient').append(`<div class="form-inline" name="allinfo">
+                                <div class="form-group mb-2">
+                                    <input type="text" class="form-control" name="key" value="${key}"  placeholder="Clave">
+                                </div>
+                                <div class="form-group mx-sm-3 mb-2">
+                                    <input type="text" class="form-control" name="value" value="${value}"  placeholder="Valor">
+                                </div>
+                                <button type="button" class="btn btn-danger mb-2" onclick="delInput(this)">Borrar</button>
+                            </div>`
+                        )
+        }
+
         /* Borra los input */
         const delInput = (value) => {
             $(value).parent().remove()
         }
 
-
-/* 6. VAlida si se quiere enviar mensaje a ese cliente */        
-        const sendMessage = (id) => {
-            if(confirm('Desea interactuar nuevamente con el cliente ?')){
-                let message = prompt('Escriba el mensaje')
-                if(message.trim() != ''){
-/* 7. Envia el mensaje */
-                    console.log(message,id)
-                    socket.emit('reopeningTicket',{message,id,token:TOKEN})
-                }else{
-                    alert('Escriba un mensaje valido')
-                }
-            }
-        }
 
         /* Global variables */
         let socket  = null;
@@ -527,9 +630,9 @@
         let agent = {}
 
 
-/* 3. getContacts llama la lista de contactos */
+
         const getContacts = () => {
-            socket.emit('getContacts',TOKEN)
+            alert('Servicio de lista de contactos proximamente')
         }
 
         $( document ).ready( () => {
@@ -729,27 +832,25 @@
             })
             
 
-/* 4. Recibe la lista de contactos */
-            socket.on('contactsList', (data) => {
-                $('#contacModal').modal('show')
-                let html = '';
-/* 5. Agrega los items al modal */
-                for(let i = 0; i < data.length; i++){
-                    html+=` <div class="row" onclick="() => console.log('click')">
-                                <div class="col-lg-8">
-                                    <p style="margin: 0px;">Nombre : ${data[i].nombre}</p>
-                                    <p style="margin: 0px;">UUID : ${data[i].uuid}</p>
-                                    <p style="margin: 0px;">Ultimo tt : ${data[i].ultimoTT}</p>
-                                    <p style="margin: 0px;">Fecha : ${data[i].fecha}</p>
-                                    <p style="margin: 0px;">Desc : ${data[i].descripcion}</p>
-                                </div>
-                                <div class="col-lg-4">
-                                    <button class="btn-info" onclick="sendMessage('${data[i].id}')"> <i class="far fa-comments"></i> </button>
-                                </div>
-                            </div>`
-                }
-                $('#listContact').html(html)
-            })
+//             socket.on('contactsList', (data) => {
+//                 $('#contacModal').modal('show')
+//                 let html = '';
+//                 for(let i = 0; i < data.length; i++){
+//                     html+=` <div class="row" onclick="() => console.log('click')">
+//                                 <div class="col-lg-8">
+//                                     <p style="margin: 0px;">Nombre : ${data[i].nombre}</p>
+//                                     <p style="margin: 0px;">UUID : ${data[i].uuid}</p>
+//                                     <p style="margin: 0px;">Ultimo tt : ${data[i].ultimoTT}</p>
+//                                     <p style="margin: 0px;">Fecha : ${data[i].fecha}</p>
+//                                     <p style="margin: 0px;">Desc : ${data[i].descripcion}</p>
+//                                 </div>
+//                                 <div class="col-lg-4">
+//                                     <button class="btn-info" onclick="sendMessage('${data[i].id}')"> <i class="far fa-comments"></i> </button>
+//                                 </div>
+//                             </div>`
+//                 }
+//                 $('#listContact').html(html)
+//             })
             
         })
     </script>
