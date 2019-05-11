@@ -157,6 +157,32 @@
                 </div>
                 <!-- / -->
 
+                <!-- PROGRESS CLOSE TT-->
+                <div class="modal" tabindex="-1" role="dialog" id="openChat" data-backdrop="static" data-keyboard="false">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Reabriendo ticket</h5>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row">
+                                        <div class="col-lg-12">
+                                            <div class="progress" >
+                                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- / -->
+
+                
+
+
                 <!-- Modal list contacts -->
                 <div class="modal" tabindex="-1" role="dialog" id="contacModal" >
                     <div class="modal-dialog" role="document">
@@ -629,11 +655,31 @@
         const TOKEN = 'FCcnD0PkoptrF31pKV9BTx2J' // token_socket of user
         let agent = {}
 
-
-
+        /* llama la lista de contactos */        
         const getContacts = () => {
-            alert('Servicio de lista de contactos proximamente')
+            socket.emit('getAllContacts')
+            $('#getContacts').modal('show')
+            /* La recepción de la lista esta en los lisener del 
+            socket errorGetAllContacts y successGetAllContacts */
         }
+
+        /* Abre el nuevo chat */
+        const openChat = (id,idAccount) => {
+            /* Valida que quiera reabiri el TT */
+            if(confirm('Desea reabrir este ticket ?')){
+                /* Es necesario enviar un mensaje para abrir el chat */
+                let message = prompt('Escriba el mensaje a enviar')
+                if(message.trim() != ''){
+                    /* Envia el mensaje al chat*/
+                    socket.emit('openChat',{id,message,idAccount})
+                    $('#openChat').modal('show')
+                    /* Para recibir el error o confirmación del tt se colocan dos lisent errorOpenChat y successOpenChat*/
+                }else{
+                    alert('El mensaje no es correcto')
+                }
+            }
+        }
+
 
         $( document ).ready( () => {
 
@@ -829,6 +875,69 @@
 
             socket.on('closeSesion',(error) => {
                 console.log('Aqui se fuerza el cierre de sesión')
+            })
+
+            /* Recibe alguna notificacion de error de la recepcion de contactos */
+            socket.on('errorGetAllContacts',(error) => {
+                console.error(error)
+                alert(error)
+                $('#getContacts').modal('hide')
+            })
+
+            /* Recibe los contactos */
+            socket.on('successGetAllContacts',(data) => {
+                /* Itera la información recibida siempre recibira un Array */
+                let html = '';
+                for(let i = 0; i < data.length; i++){
+
+                    /* Carga la información adicional */
+                    let tmp = JSON.parse(data[i].info);
+
+                    /* Prepara el item de la lista con la información principal */
+                    html+=` <div class="row" style="
+                        max-height: 100px;
+                        margin-bottom: 20px;
+                        border-style: double;
+                        padding: 10px 0px;
+                        overflow: scroll;
+                    ">
+                                <div class="col-lg-8">
+                                    <p style="margin: 0px;">Nombre : ${data[i].nombre}</p>
+                                    <p style="margin: 0px;">UUID : ${data[i].id_cliente}</p>
+                                    <p style="margin: 0px;">Numero : ${data[i].numero}</p>
+                                    <p style="margin: 0px;">Ultima actualización : ${data[i].lastUpdate}</p>
+                                    <p>Información adicional</p>`
+
+                    /* Agrega al item la información adicional */
+                    for(key in tmp){
+                        if(key != 'name' && key != 'idClient'){
+                            html+=`<p style="margin: 0px;">${key} : ${tmp[key]}</p>`
+                        }
+                    }
+
+                    /* Agrega el boton con el evento openChat que servira para reabiri el chat*/
+                    html+=`</div>
+                                <div class="col-lg-4">
+                                    <button class="btn-info" onclick="openChat('${data[i].numero}','${data[i].cuenta_id}')"> <i class="far fa-comments"></i> </button>
+                                </div>
+                            </div>`
+                }
+                $('#listContact').html(html)
+                $('#getContacts').modal('hide')
+                $('#contacModal').modal('show')
+            })
+
+            /* Recibe alguna notificacion de error al reabrir un tt */
+            socket.on('errorOpenChat', (error) => {
+                alert(error)
+                console.error('error',error)
+                $('#openChat').modal('hide')
+            })
+
+            /* Recibe la confirmación de reabrir el tt */
+            socket.on('successOpenChat',(data) => {
+                $('#openChat').modal('hide')
+                $('#contacModal').modal('hide')
             })
             
 
